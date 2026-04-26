@@ -1,0 +1,62 @@
+# R3 Address Accuracy — Feature Configuration
+#
+# This file controls which features are computed and how. Edit this file
+# (no Python changes needed) to iterate on the model and re-train.
+#
+# After editing, run:
+#   python train.py base.xlsx claims.csv
+# to retrain with the new feature set.
+
+# ============================================================================
+# FAMILY-LEVEL SWITCHES (turn entire feature families on/off)
+# ============================================================================
+families:
+  specialty_provenance: true         # A. taxonomy code regex, length
+  r3_internals:         true         # B. R3 score, label one-hots, score-bands
+  evidence_cube_raw:    true         # C. 12 raw URL counts
+  evidence_rollups:     true         # D. totals and ratios
+  cross_view_agreement: true         # E. provider-vs-org-view patterns
+  geography:            false         # F. state, ZIP prefix, high-risk flag
+  provider_attributes:  false         # G. credentials, NPI changes
+  org_linkage:          false         # H. org name, hospital flag
+  claims_raw:           false         # I. direct from claims aggregation
+  claims_derived:       false         # J. log-volume, rules
+  cross_interactions:   true         # K. taxonomy×no-claims, R3×claims rules
+
+# ============================================================================
+# FEATURE-LEVEL OVERRIDES (drop individual features within a family)
+# Set any feature to false to exclude it. Default is true (include).
+# ============================================================================
+features:
+  # Weak features that may be candidates for removal — tune by experimenting.
+  feat_has_middle_name:        true
+  feat_has_credentials:        true
+  feat_cred_is_md_do:          true
+  feat_cred_is_midlevel:       true
+  feat_specialty_length:       true   # somewhat redundant with taxonomy flag
+  # Everything else is included by default.
+
+# ============================================================================
+# THRESHOLDS used during feature engineering (these define rule features)
+# ============================================================================
+thresholds:
+  claims_high_volume_min:        20    # n_claims >= this is "high volume"
+  claims_recent_days:            180   # window for "recent"
+  claims_strong_corroborate_min: 3     # min claims for strong corroborate rule
+  claims_strong_contradict_min:  20    # min claims for strong contradict rule
+  evidence_recent_days:          365   # not currently used; reserved
+
+# ============================================================================
+# CATEGORICAL FEATURES (treated natively by LightGBM)
+# ============================================================================
+categorical_features:
+  - feat_state
+  - feat_zip_prefix
+
+# ============================================================================
+# RISK-TIER LISTS (used by feat_state_high_risk)
+# ============================================================================
+high_risk_states:
+  - AL
+  - MI
+  - NJ

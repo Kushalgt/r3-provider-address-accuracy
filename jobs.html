@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}All Jobs — R3 Address Accuracy{% endblock %}
+{% block content %}
+<section class="hero">
+  <h2>All jobs</h2>
+</section>
+
+<section class="card">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th><th>File</th><th>Source</th><th>Status</th>
+        <th>Records</th><th>Uploaded</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in jobs %}
+      <tr>
+        <td>#{{ j.id }}</td>
+        <td>{{ j.filename }}</td>
+        <td>{{ j.claims_source }}</td>
+        <td><span class="status status-{{ j.status }}">{{ j.status }}</span></td>
+        <td>{{ j.n_records or '-' }}</td>
+        <td><small>{{ j.uploaded_at }}</small></td>
+        <td><a href="/jobs/{{ j.id }}" class="btn-link">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

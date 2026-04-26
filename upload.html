@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Upload — R3 Address Accuracy{% endblock %}
+{% block content %}
+<section class="hero">
+  <h2>Upload provider records for validation</h2>
+  <p class="muted">
+    Drop the base data file (Excel or CSV with R3 output and web evidence). The pipeline
+    runs feature engineering, two ML models, and produces a per-record decision plus a
+    downloadable enriched output.
+  </p>
+</section>
+
+<section class="card">
+  <form action="/upload" method="post" enctype="multipart/form-data">
+    <div class="field">
+      <label for="base_file">Base data file <span class="req">*</span></label>
+      <input type="file" name="base_file" id="base_file" accept=".xlsx,.xls,.csv" required>
+      <small class="hint">Same format as the hackathon Base_data file.</small>
+    </div>
+
+    <div class="field">
+      <label>Claims data source</label>
+      <div class="radio-group">
+        <label><input type="radio" name="claims_mode" value="empty" checked> No claims (offline mode — pipeline runs without claims features)</label>
+        <label><input type="radio" name="claims_mode" value="csv"> Upload claims aggregate CSV</label>
+        <label><input type="radio" name="claims_mode" value="snowflake"> Pull from Snowflake (production)</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="claims_file">Claims aggregate CSV (optional)</label>
+      <input type="file" name="claims_file" id="claims_file" accept=".csv">
+      <small class="hint">Output of the Snowflake aggregation query. Required if claims mode = csv.</small>
+    </div>
+
+    <div class="field">
+      <label>Explanation mode</label>
+      <div class="radio-group">
+        <label><input type="radio" name="explain_mode" value="template" checked> Template (deterministic, fast)</label>
+        <label><input type="radio" name="explain_mode" value="auto"> Auto (LLM if API key set, else template)</label>
+        <label><input type="radio" name="explain_mode" value="llm"> LLM (requires ANTHROPIC_API_KEY)</label>
+      </div>
+    </div>
+
+    <div class="field actions">
+      <button type="submit" class="btn-primary">Run pipeline</button>
+    </div>
+  </form>
+</section>
+
+{% if jobs %}
+<section class="card">
+  <h3>Recent jobs</h3>
+  <table class="data-table">
+    <thead>
+      <tr><th>ID</th><th>File</th><th>Status</th><th>Records</th><th>Uploaded</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for j in jobs %}
+      <tr>
+        <td>#{{ j.id }}</td>
+        <td>{{ j.filename }}</td>
+        <td><span class="status status-{{ j.status }}">{{ j.status }}</span></td>
+        <td>{{ j.n_records or '-' }}</td>
+        <td><small>{{ j.uploaded_at }}</small></td>
+        <td><a href="/jobs/{{ j.id }}" class="btn-link">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% endblock %}

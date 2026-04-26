@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Job #{{ job.id }} — R3 Address Accuracy{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <h2>Job #{{ job.id }} — {{ job.filename }}</h2>
+  <p class="muted">
+    Source: {{ job.claims_source }}
+    · Uploaded {{ job.uploaded_at }}
+    · Status: <span class="status status-{{ job.status }}" id="job-status">{{ job.status }}</span>
+  </p>
+</section>
+
+{% if job.status == 'queued' or job.status == 'running' %}
+<section class="card">
+  <h3>Pipeline progress</h3>
+  <div class="progress-wrap">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width: {{ job.progress_pct or 0 }}%"></div>
+    </div>
+    <p id="progress-stage" class="muted">{{ job.progress_stage or 'Initializing...' }}</p>
+    <p id="progress-pct" class="muted"><strong>{{ job.progress_pct or 0 }}%</strong></p>
+  </div>
+</section>
+
+<script>
+(function() {
+  function poll() {
+    fetch('/jobs/{{ job.id }}/progress').then(r => r.json()).then(d => {
+      document.getElementById('progress-fill').style.width = d.progress_pct + '%';
+      document.getElementById('progress-stage').textContent = d.progress_stage || '';
+      document.getElementById('progress-pct').innerHTML = '<strong>' + d.progress_pct + '%</strong>';
+      document.getElementById('job-status').textContent = d.status;
+      document.getElementById('job-status').className = 'status status-' + d.status;
+      if (d.status === 'done' || d.status === 'failed') {
+        location.reload();
+      } else {
+        setTimeout(poll, 1500);
+      }
+    });
+  }
+  poll();
+})();
+</script>
+{% endif %}
+
+{% if job.status == 'failed' %}
+<section class="card error">
+  <h3>Pipeline failed</h3>
+  <pre>{{ job.error_message }}</pre>
+</section>
+{% endif %}
+
+{% if job.status == 'done' %}
+<section class="card">
+  <div class="actions-row">
+    <a href="/jobs/{{ job.id }}/download" class="btn-primary">⬇ Download enriched output (Excel)</a>
+  </div>
+
+  <h3>Pipeline summary</h3>
+  <div class="summary-grid">
+    <div class="kpi">
+      <div class="kpi-label">Total records</div>
+      <div class="kpi-value">{{ summary.total_records }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Records with claims data</div>
+      <div class="kpi-value">{{ summary.records_with_claims }}</div>
+    </div>
+    <div class="kpi keep">
+      <div class="kpi-label">Keep R3 verdict</div>
+      <div class="kpi-value">{{ summary.records_to_keep_r3 }}</div>
+    </div>
+    <div class="kpi flip">
+      <div class="kpi-label">Flip passively</div>
+      <div class="kpi-value">{{ summary.records_to_flip_passively }}</div>
+    </div>
+    <div class="kpi call">
+      <div class="kpi-label">Send to robocall</div>
+      <div class="kpi-value">{{ summary.records_to_send_to_call }} <small>/ cap {{ summary.call_cap }}</small></div>
+    </div>
+    <div class="kpi inconclusive">
+      <div class="kpi-label">Leave inconclusive</div>
+      <div class="kpi-value">{{ summary.records_left_inconclusive }}</div>
+    </div>
+    <div class="kpi cost">
+      <div class="kpi-label">Estimated cost</div>
+      <div class="kpi-value">${{ summary.estimated_total_cost_usd }}</div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h3>Per-record decisions</h3>
+  <div class="filter-bar">
+    Filter by decision:
+    <a href="?" class="chip">All</a>
+    <a href="?filter=KEEP" class="chip chip-keep">Keep ({{ counts.KEEP or 0 }})</a>
+    <a href="?filter=FLIP" class="chip chip-flip">Flip ({{ counts.FLIP or 0 }})</a>
+    <a href="?filter=CALL" class="chip chip-call">Call ({{ counts.CALL or 0 }})</a>
+    <a href="?filter=LEAVE_INCONCLUSIVE" class="chip chip-inconclusive">Inconclusive ({{ counts.LEAVE_INCONCLUSIVE or 0 }})</a>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table data-grid">
+      <thead>
+        <tr>
+          <th>NPI</th>
+          <th>R3</th>
+          <th>P(R3 wrong)</th>
+          <th>P(call OK)</th>
+          <th>Decision</th>
+          <th>Final</th>
+          <th>Explanation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in decisions %}
+        <tr class="row-{{ d.decision }}">
+          <td><code>{{ d.orig_npi }}</code></td>
+          <td>{{ d.r3_label }}</td>
+          <td>{{ '%.0f' % (d.p_r3_wrong * 100) if d.p_r3_wrong is not none else '-' }}%</td>
+          <td>{{ '%.0f' % (d.p_call_conclusive * 100) if d.p_call_conclusive is not none else '-' }}%</td>
+          <td><span class="chip chip-{{ d.decision|lower }}">{{ d.decision }}</span></td>
+          <td>{{ d.final_label }}</td>
+          <td class="explanation">{{ d.explanation }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Showing first 200 records — full data in the downloadable Excel.</p>
+</section>
+{% endif %}
+
+{% endblock %}

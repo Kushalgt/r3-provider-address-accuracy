@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}R3 Address Accuracy{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container">
+      <h1 class="logo"><a href="/">R3 Address Accuracy</a></h1>
+      <nav>
+        <a href="/">Upload</a>
+        <a href="/jobs">All Jobs</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="container">
+    <small>R3 Address Accuracy hackathon prototype</small>
+  </footer>
+</body>
+</html>
