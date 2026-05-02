@@ -61,11 +61,13 @@ import warnings
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
+import matplotlib.pyplot as plt
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import roc_auc_score, average_precision_score
-
+from sklearn.metrics import roc_auc_score, average_precision_score, brier_score_loss, f1_score
+from sklearn.isotonic import IsotonicRegression
 from features import build_features, merge_claims, normalize_r3_label, load_config
-
+from llm import call_llm,prompt_template
+import shap
 warnings.filterwarnings('ignore')
 
 # ============================================================================
@@ -120,7 +122,7 @@ def prepare_X(features_df, config=None):
 # CV TRAINING WITH OOF PREDICTIONS
 # ============================================================================
 
-def cv_train(X, y, mask, cat_cols, name):
+def cv_train(X, y, mask, cat_cols, name,sample_weights = None):
     """Train with stratified k-fold CV; refit on full subset for inference.
     
     Args:
@@ -136,7 +138,10 @@ def cv_train(X, y, mask, cat_cols, name):
         mean_auc: cross-validation mean AUC
     """
     print(f"\n{'='*70}\nMODEL: {name}\n{'='*70}")
-    
+    if sample_weights is not None:
+        sample_weights_m = sample_weights[mask]
+    else:
+        sample_weights_m = None
     X_m = X[mask].reset_index(drop=True)
     y_m = y[mask].astype(int).reset_index(drop=True)
     idx_m = np.where(mask)[0]
@@ -147,9 +152,17 @@ def cv_train(X, y, mask, cat_cols, name):
     
     for fold, (tr, va) in enumerate(skf.split(X_m, y_m), 1):
         m = lgb.LGBMClassifier(**LGBM_PARAMS)
+        if sample_weights_m is not None:
+            train_weight = sample_weights_m[tr]
+            eval_weight = [sample_weights_m[va]] # Must be a list to match eval_set
+        else:
+            train_weight = None
+            eval_weight = None
         m.fit(X_m.iloc[tr], y_m.iloc[tr],
               eval_set=[(X_m.iloc[va], y_m.iloc[va])],
               categorical_feature=cat_cols,
+              eval_sample_weight=eval_weight,
+              sample_weight=train_weight,
               callbacks=[lgb.early_stopping(50, verbose=False)])
         p = m.predict_proba(X_m.iloc[va])[:, 1]
         oof[idx_m[va]] = p
@@ -161,11 +174,56 @@ def cv_train(X, y, mask, cat_cols, name):
     
     mean_auc = np.mean(aucs)
     print(f"  CV mean: AUC={mean_auc:.4f} (±{np.std(aucs):.4f})  AP={np.mean(aps):.4f}")
+    print(np.isnan(oof))
+    valid = ~np.isnan(oof)
+    y_valid = y[valid].astype(int)
+    oof_valid = oof[valid]
+
+    pr_auc = average_precision_score(y_valid, oof_valid)
+
+    print(f"OOF PR-AUC for positive cases (R3 wrong): {pr_auc:.4f}")
+    y_valid_neg = 1 - y_valid
+    oof_valid_neg = 1 - oof_valid
+    print(f"OOF PR-AUC for negative cases (R3 right) : {average_precision_score(y_valid_neg, oof_valid_neg)}")
+    calibrator = IsotonicRegression(out_of_bounds='clip')
+    calibrator.fit(oof_valid, y_valid)
+    oof_cal = calibrator.transform(oof_valid)
+    brier = brier_score_loss(y_valid, oof_cal)
+    print(f"Brier Score (earlier): {brier_score_loss(y_valid, oof_valid):.4f}")
+    print(f"Brier Score (calibrated): {brier:.4f}")
+    print(f"OOF PR-AUC  calibrated for postives cases (R3 wrong) : {average_precision_score(y_valid, oof_cal)}")
+    print(f"OOF PR-AUC  calibrated for negative cases (R3 right) : {average_precision_score(y_valid_neg, 1- oof_cal)}")
+    best_f1 = 0
+    best_t = 0
+    for t in np.linspace(0.0, 1.0, 101):
+        preds = (oof_cal >= t).astype(int)
+        f1 = f1_score(y_valid, preds)
+        
+        if f1 > best_f1:
+            best_f1 = f1
+            best_t = t
+
+    print(f"Best Threshold: {best_t:.3f}  F1: {best_f1:.4f}")
+    df_compare = pd.DataFrame({
+    "raw": oof_valid,
+    "calibrated": oof_cal
+    })
+
+    print(df_compare.head(20))
+    df_compare["diff"] = df_compare["calibrated"] - df_compare["raw"]
+    print(df_compare.describe())
+    plt.scatter(oof_valid, oof_cal, alpha=0.3)
+    plt.xlabel("Raw Probability")
+    plt.ylabel("Calibrated Probability")
+    plt.title("Calibration Effect")
+    plt.show()
     
     # Refit on full subset for production inference
     final = lgb.LGBMClassifier(**LGBM_PARAMS)
     final.fit(X_m, y_m, categorical_feature=cat_cols)
-    return oof, final, mean_auc
+    explainer = shap.TreeExplainer(final)
+    shap_values_oof = explainer.shap_values(X_m)[1]
+    return oof_cal, final, mean_auc
 
 
 # ============================================================================
@@ -192,13 +250,16 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
     claims = pd.read_csv(claims_csv_path)
     
     df = merge_claims(base, claims)
+    claims.to_csv("claims_data.csv", index=False)
     config = load_config()
     feats = build_features(df, config=config)
+    feats.to_csv("features.csv",index=False)
     
     # ----- Define targets -----
-    # Target A: R3 disagrees with Call QC (only defined where both conclusive)
+    # Target A: R3 disagrees with Call QC 
     both_conclusive = (df['R3'].isin(['ACCURATE', 'INACCURATE']) &
                        df['CallQC'].isin(['ACCURATE', 'INACCURATE']))
+    only_call_conclusive = (df['CallQC'].isin(['ACCURATE','INACCURATE']))
     y_r3_wrong = np.where(both_conclusive,
                            (df['R3'] != df['CallQC']).astype(int),
                            np.nan)
@@ -214,11 +275,11 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
     X, cat_cols = prepare_X(feats, config=config)
     print(f"Total Features fed to model: {len(X.columns)}")
     print(X.columns.tolist())
-
+    sample_weights = np.where(y_r3_wrong == 0,3.0,1.0)
     # ----- Train Model A: P(R3 wrong) -----
     mask_a = both_conclusive.values
     oof_a, model_a, auc_a = cv_train(X, pd.Series(y_r3_wrong), mask_a, cat_cols,
-                                       'A — P(R3 wrong)')
+                                       'A — P(R3 wrong)',sample_weights=sample_weights)
     
     # Show top features
     fi_a = pd.Series(model_a.feature_importances_,

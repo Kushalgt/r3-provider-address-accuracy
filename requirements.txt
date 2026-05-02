@@ -4,3 +4,10 @@ lightgbm
 scikit-learn
 mlflow
 openpyxl
+python-multipart
+notebook
+sweetviz
+pandas-profiling
+seaborn
+ipywidgets
+shap

@@ -23,7 +23,7 @@ import os
 import yaml
 import numpy as np
 import pandas as pd
-
+from utis import extract_area_code
 # ============================================================================
 # CONSTANTS
 # ============================================================================
@@ -161,6 +161,23 @@ def build_features(df, config=None):
         df = df.copy()
         df['R3'] = df['Final_R3_Reco_Address'].apply(normalize_r3_label)
 
+
+    # -------- B: High-Gain Raw Features --------
+    if fams.get('raw_base_features'):
+        # Only keeping columns that showed significant Gain
+        if "Phone" in df.columns:
+            df["area_code"] = df["Phone"].apply(extract_area_code)
+            _add_feature(f,'area_code',df["area_code"].astype(str),config)
+        # _add_feature(f, 'raw_zip', df['Zip'].astype(str), config)
+        # _add_feature(f, 'raw_comment_web_qc', df['Comment_Web_QC'].astype(str), config)
+
+    # -------- C: Essential Engineered Base --------
+    if fams.get('engineered_base'):
+        _add_feature(f, 'feat_address_length', df['Address1'].astype(str).str.len(), config)
+        _add_feature(f, 'feat_r3_score_numeric', 
+                     pd.to_numeric(df['Final_R3_Score_Address'], errors='coerce').fillna(0), config)
+
+    # ... [Keep Claims and Evidence sections as they were performing well before] ...
     # -------- A: Specialty / Provenance --------
     if fams.get('specialty_provenance'):
         _add_feature(f, 'feat_specialty_has_taxonomy',
@@ -170,6 +187,8 @@ def build_features(df, config=None):
                      df['Specialty'].astype(str).str.len(), config)
 
     # -------- B: R3 internals --------
+    _add_feature(f,'feat_web_is_accurate',(df["Manual_Address"] == "ACCURATE").astype(int),config)
+    _add_feature(f,'feat_web_is_inaccurate',(df["Manual_Address"] == "INACCURATE").astype(int),config)
     if fams.get('r3_internals'):
         _add_feature(f, 'feat_r3_score', df['Final_R3_Score_Address'].astype(float), config)
         _add_feature(f, 'feat_r3_is_accurate', (df['R3'] == 'ACCURATE').astype(int), config)
