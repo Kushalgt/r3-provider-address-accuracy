@@ -67,6 +67,7 @@ from sklearn.metrics import roc_auc_score, average_precision_score, brier_score_
 from sklearn.isotonic import IsotonicRegression
 from features import build_features, merge_claims, normalize_r3_label, load_config
 from llm import call_llm,prompt_template
+from shapAnalysis import run_shap_analysis, zone_accuracy_analysis
 import shap
 warnings.filterwarnings('ignore')
 
@@ -122,109 +123,249 @@ def prepare_X(features_df, config=None):
 # CV TRAINING WITH OOF PREDICTIONS
 # ============================================================================
 
-def cv_train(X, y, mask, cat_cols, name,sample_weights = None):
+# def cv_train(X, y, mask, cat_cols, name,sample_weights = None):
+#     """Train with stratified k-fold CV; refit on full subset for inference.
+    
+#     Args:
+#         X: full feature matrix (n_records, n_features)
+#         y: target series (may contain NaN for unlabeled records)
+#         mask: boolean mask of records with valid target
+#         cat_cols: list of categorical feature names
+#         name: human-readable model name for logging
+    
+#     Returns:
+#         oof: out-of-fold predictions (length n_records, NaN where mask=False)
+#         final: model refit on all masked data, ready for production inference
+#         mean_auc: cross-validation mean AUC
+#     """
+#     print(f"\n{'='*70}\nMODEL: {name}\n{'='*70}")
+#     if sample_weights is not None:
+#         sample_weights_m = sample_weights[mask]
+#     else:
+#         sample_weights_m = None
+#     X_m = X[mask].reset_index(drop=True)
+#     y_m = y[mask].astype(int).reset_index(drop=True)
+#     idx_m = np.where(mask)[0]
+    
+#     oof = np.full(len(X), np.nan)
+#     skf = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=RANDOM_STATE)
+#     aucs, aps = [], []
+    
+#     for fold, (tr, va) in enumerate(skf.split(X_m, y_m), 1):
+#         m = lgb.LGBMClassifier(**LGBM_PARAMS)
+#         if sample_weights_m is not None:
+#             train_weight = sample_weights_m[tr]
+#             eval_weight = [sample_weights_m[va]] # Must be a list to match eval_set
+#         else:
+#             train_weight = None
+#             eval_weight = None
+#         m.fit(X_m.iloc[tr], y_m.iloc[tr],
+#               eval_set=[(X_m.iloc[va], y_m.iloc[va])],
+#               categorical_feature=cat_cols,
+#               eval_sample_weight=eval_weight,
+#               sample_weight=train_weight,
+#               callbacks=[lgb.early_stopping(50, verbose=False)])
+#         p = m.predict_proba(X_m.iloc[va])[:, 1]
+#         oof[idx_m[va]] = p
+#         a = roc_auc_score(y_m.iloc[va], p)
+#         ap = average_precision_score(y_m.iloc[va], p)
+#         aucs.append(a)
+#         aps.append(ap)
+#         print(f"  Fold {fold}: AUC={a:.4f}  AP={ap:.4f}")
+    
+#     mean_auc = np.mean(aucs)
+#     print(f"  CV mean: AUC={mean_auc:.4f} (±{np.std(aucs):.4f})  AP={np.mean(aps):.4f}")
+#     print(np.isnan(oof))
+#     valid = ~np.isnan(oof)
+#     y_valid = y[valid].astype(int)
+#     oof_valid = oof[valid]
+
+#     pr_auc = average_precision_score(y_valid, oof_valid)
+
+#     print(f"OOF PR-AUC for positive cases (R3 wrong): {pr_auc:.4f}")
+#     y_valid_neg = 1 - y_valid
+#     oof_valid_neg = 1 - oof_valid
+#     print(f"OOF PR-AUC for negative cases (R3 right) : {average_precision_score(y_valid_neg, oof_valid_neg)}")
+#     calibrator = IsotonicRegression(out_of_bounds='clip')
+#     calibrator.fit(oof_valid, y_valid)
+#     oof_cal = calibrator.transform(oof_valid)
+#     brier = brier_score_loss(y_valid, oof_cal)
+#     print(f"Brier Score (earlier): {brier_score_loss(y_valid, oof_valid):.4f}")
+#     print(f"Brier Score (calibrated): {brier:.4f}")
+#     print(f"OOF PR-AUC  calibrated for postives cases (R3 wrong) : {average_precision_score(y_valid, oof_cal)}")
+#     print(f"OOF PR-AUC  calibrated for negative cases (R3 right) : {average_precision_score(y_valid_neg, 1- oof_cal)}")
+#     best_f1 = 0
+#     best_t = 0
+#     for t in np.linspace(0.0, 1.0, 101):
+#         preds = (oof_cal >= t).astype(int)
+#         f1 = f1_score(y_valid, preds)
+        
+#         if f1 > best_f1:
+#             best_f1 = f1
+#             best_t = t
+
+#     print(f"Best Threshold: {best_t:.3f}  F1: {best_f1:.4f}")
+#     df_compare = pd.DataFrame({
+#     "raw": oof_valid,
+#     "calibrated": oof_cal
+#     })
+
+#     print(df_compare.head(20))
+#     df_compare["diff"] = df_compare["calibrated"] - df_compare["raw"]
+#     print(df_compare.describe())
+#     plt.scatter(oof_valid, oof_cal, alpha=0.3)
+#     plt.xlabel("Raw Probability")
+#     plt.ylabel("Calibrated Probability")
+#     plt.title("Calibration Effect")
+#     plt.show()
+    
+#     # Refit on full subset for production inference
+#     final = lgb.LGBMClassifier(**LGBM_PARAMS)
+#     final.fit(X_m, y_m, categorical_feature=cat_cols)
+#     explainer = shap.TreeExplainer(final)
+#     shap_values_oof = explainer.shap_values(X_m)[1]
+#     return oof_cal, final, mean_auc
+# ============================================================================
+# UPDATED cv_train() — drop this into your existing train.py
+# Only the cv_train function changes. Everything else stays the same.
+# ============================================================================
+
+# Add this import at the top of train.py (alongside your existing imports):
+# from shap_analysis import run_shap_analysis, zone_accuracy_analysis
+def get_top_reasons(shap_row, feature_names, n=3):
+    pairs = sorted(
+        zip(feature_names, shap_row),
+        key=lambda x: abs(x[1]),
+        reverse=True
+    )[:n]
+    reasons = []
+    for feat, val in pairs:
+        direction = "wrong" if val > 0 else "right"
+        reasons.append(f"{feat}({'+' if val>0 else ''}{val:.2f}→{direction})")
+    return " | ".join(reasons)
+def cv_train(X, y, mask, cat_cols, name, sample_weights=None):
     """Train with stratified k-fold CV; refit on full subset for inference.
-    
+
     Args:
-        X: full feature matrix (n_records, n_features)
-        y: target series (may contain NaN for unlabeled records)
-        mask: boolean mask of records with valid target
-        cat_cols: list of categorical feature names
-        name: human-readable model name for logging
-    
+        X             : full feature matrix (n_records, n_features)
+        y             : target series (may contain NaN for unlabeled records)
+        mask          : boolean mask of records with valid target
+        cat_cols      : list of categorical feature names
+        name          : human-readable model name for logging
+        sample_weights: optional per-record weights (Zone 1 = 3x to protect agreement zone)
+
     Returns:
-        oof: out-of-fold predictions (length n_records, NaN where mask=False)
-        final: model refit on all masked data, ready for production inference
-        mean_auc: cross-validation mean AUC
+        oof      : out-of-fold predictions (length n_records, NaN where mask=False)
+        final    : model refit on all masked data, ready for production inference
+        mean_auc : cross-validation mean AUC
     """
     print(f"\n{'='*70}\nMODEL: {name}\n{'='*70}")
+
     if sample_weights is not None:
         sample_weights_m = sample_weights[mask]
     else:
         sample_weights_m = None
-    X_m = X[mask].reset_index(drop=True)
-    y_m = y[mask].astype(int).reset_index(drop=True)
-    idx_m = np.where(mask)[0]
-    
+
+    X_m    = X[mask].reset_index(drop=True)
+    y_m    = y[mask].astype(int).reset_index(drop=True)
+    idx_m  = np.where(mask)[0]
+
     oof = np.full(len(X), np.nan)
     skf = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=RANDOM_STATE)
     aucs, aps = [], []
-    
+    oof_shap = np.zeros((len(X_m),X_m.shape[1])) #shape n_records, n_features
     for fold, (tr, va) in enumerate(skf.split(X_m, y_m), 1):
         m = lgb.LGBMClassifier(**LGBM_PARAMS)
+
         if sample_weights_m is not None:
             train_weight = sample_weights_m[tr]
-            eval_weight = [sample_weights_m[va]] # Must be a list to match eval_set
+            eval_weight  = [sample_weights_m[va]]
         else:
             train_weight = None
-            eval_weight = None
-        m.fit(X_m.iloc[tr], y_m.iloc[tr],
-              eval_set=[(X_m.iloc[va], y_m.iloc[va])],
-              categorical_feature=cat_cols,
-              eval_sample_weight=eval_weight,
-              sample_weight=train_weight,
-              callbacks=[lgb.early_stopping(50, verbose=False)])
-        p = m.predict_proba(X_m.iloc[va])[:, 1]
+            eval_weight  = None
+
+        m.fit(
+            X_m.iloc[tr], y_m.iloc[tr],
+            eval_set=[(X_m.iloc[va], y_m.iloc[va])],
+            categorical_feature=cat_cols,
+            eval_sample_weight=eval_weight,
+            sample_weight=train_weight,
+            callbacks=[lgb.early_stopping(50, verbose=False)],
+        )
+
+        p  = m.predict_proba(X_m.iloc[va])[:, 1]
         oof[idx_m[va]] = p
-        a = roc_auc_score(y_m.iloc[va], p)
+        
+        #COMPUTE SHAP FOR VALIDATION FOLD ONLY
+        fold_explainer = shap.TreeExplainer(m)
+        fold_shap       = fold_explainer.shap_values(X_m.iloc[va])
+        if isinstance(fold_shap, list):
+            fold_shap = fold_shap[1] 
+        oof_shap[va] = fold_shap
+        
+        
+        a  = roc_auc_score(y_m.iloc[va], p)
         ap = average_precision_score(y_m.iloc[va], p)
         aucs.append(a)
         aps.append(ap)
         print(f"  Fold {fold}: AUC={a:.4f}  AP={ap:.4f}")
-    
+
     mean_auc = np.mean(aucs)
     print(f"  CV mean: AUC={mean_auc:.4f} (±{np.std(aucs):.4f})  AP={np.mean(aps):.4f}")
-    print(np.isnan(oof))
-    valid = ~np.isnan(oof)
-    y_valid = y[valid].astype(int)
+
+    # ── Calibration ───────────────────────────────────────────
+    valid     = ~np.isnan(oof)
+    y_valid   = y[valid].astype(int)
     oof_valid = oof[valid]
 
-    pr_auc = average_precision_score(y_valid, oof_valid)
-
-    print(f"OOF PR-AUC for positive cases (R3 wrong): {pr_auc:.4f}")
-    y_valid_neg = 1 - y_valid
-    oof_valid_neg = 1 - oof_valid
-    print(f"OOF PR-AUC for negative cases (R3 right) : {average_precision_score(y_valid_neg, oof_valid_neg)}")
     calibrator = IsotonicRegression(out_of_bounds='clip')
     calibrator.fit(oof_valid, y_valid)
     oof_cal = calibrator.transform(oof_valid)
-    brier = brier_score_loss(y_valid, oof_cal)
-    print(f"Brier Score (earlier): {brier_score_loss(y_valid, oof_valid):.4f}")
-    print(f"Brier Score (calibrated): {brier:.4f}")
-    print(f"OOF PR-AUC  calibrated for postives cases (R3 wrong) : {average_precision_score(y_valid, oof_cal)}")
-    print(f"OOF PR-AUC  calibrated for negative cases (R3 right) : {average_precision_score(y_valid_neg, 1- oof_cal)}")
-    best_f1 = 0
-    best_t = 0
+
+    print(f"  Brier Score raw       : {brier_score_loss(y_valid, oof_valid):.4f}")
+    print(f"  Brier Score calibrated: {brier_score_loss(y_valid, oof_cal):.4f}")
+
+    # ── Best threshold by F1 ──────────────────────────────────
+    best_f1, best_t = 0, 0
     for t in np.linspace(0.0, 1.0, 101):
         preds = (oof_cal >= t).astype(int)
-        f1 = f1_score(y_valid, preds)
-        
+        f1    = f1_score(y_valid, preds)
         if f1 > best_f1:
-            best_f1 = f1
-            best_t = t
+            best_f1, best_t = f1, t
+    print(f"  Best Threshold: {best_t:.3f}  F1: {best_f1:.4f}")
 
-    print(f"Best Threshold: {best_t:.3f}  F1: {best_f1:.4f}")
-    df_compare = pd.DataFrame({
-    "raw": oof_valid,
-    "calibrated": oof_cal
-    })
+    # ── Zone accuracy check ───────────────────────────────────
+    # This is the hackathon's key metric — check BEFORE declaring success
+    # Zone 1 = R3 correct records → must stay above 95% accuracy
+    y_pred_binary = (oof_cal >= best_t).astype(int)
+    zone_accuracy_analysis(y_valid, y_pred_binary, threshold=0.95)
 
-    print(df_compare.head(20))
-    df_compare["diff"] = df_compare["calibrated"] - df_compare["raw"]
-    print(df_compare.describe())
-    plt.scatter(oof_valid, oof_cal, alpha=0.3)
-    plt.xlabel("Raw Probability")
-    plt.ylabel("Calibrated Probability")
-    plt.title("Calibration Effect")
-    plt.show()
-    
-    # Refit on full subset for production inference
+    # ── Refit final model on full masked data ─────────────────
     final = lgb.LGBMClassifier(**LGBM_PARAMS)
-    final.fit(X_m, y_m, categorical_feature=cat_cols)
-    explainer = shap.TreeExplainer(final)
-    shap_values_oof = explainer.shap_values(X_m)[1]
-    return oof_cal, final, mean_auc
+    final.fit(X_m, y_m, categorical_feature=cat_cols,
+              sample_weight=sample_weights_m)
 
+    # ── SHAP Analysis ─────────────────────────────────────────
+    # Only run for Model A (P R3 wrong) — most informative
+    # Model B SHAP is less useful since it's predicting call outcome, not R3 failures
+    # Determine model name for output file naming
+    if "R3 wrong" in name:
+        model_name = "model_a"
+    elif "call conclusive" in name:
+        model_name = "model_b"
+    else:
+        model_name = name.replace(" ", "_").lower()
+    shap_values, explainer = run_shap_analysis(
+        model      = final,
+        X          = X_m,
+        y          = y_m,
+        model_name = model_name,
+        output_dir = ".",       # saves plots to current directory
+    )
+
+    # Save explainer to bundle so pipeline.py can use it for per-record explanations
+    # We return it alongside the model
+    return oof, final, mean_auc, explainer,oof_shap
 
 # ============================================================================
 # MAIN
@@ -276,10 +417,16 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
     print(f"Total Features fed to model: {len(X.columns)}")
     print(X.columns.tolist())
     sample_weights = np.where(y_r3_wrong == 0,3.0,1.0)
+    high_risk_states = df['State'].isin(['MI', 'NJ', 'AL'])
+    sample_weights = np.where((y_r3_wrong == 0) & high_risk_states, 5.0, sample_weights)
     # ----- Train Model A: P(R3 wrong) -----
     mask_a = both_conclusive.values
-    oof_a, model_a, auc_a = cv_train(X, pd.Series(y_r3_wrong), mask_a, cat_cols,
-                                       'A — P(R3 wrong)',sample_weights=sample_weights)
+    # mask_a = np.ones(len(df), dtype=bool)
+    oof_a, model_a, auc_a, explainer_a,oof_shap_a = cv_train(
+        X, pd.Series(y_r3_wrong), mask_a, cat_cols,
+        'A — P(R3 wrong)',
+        sample_weights=sample_weights
+    )
     
     # Show top features
     fi_a = pd.Series(model_a.feature_importances_,
@@ -291,7 +438,7 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
     
     # ----- Train Model B: P(call conclusive) -----
     mask_b = np.ones(len(df), dtype=bool)
-    oof_b, model_b, auc_b = cv_train(X, y_call_conclusive, mask_b, cat_cols,
+    oof_b, model_b, auc_b, explainer_b,shap_b  = cv_train(X, y_call_conclusive, mask_b, cat_cols,
                                        'B — P(call conclusive)')
     
     # ----- Triage precision @ top-K (validates triage quality) -----
@@ -310,12 +457,14 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
     
     # ----- Save model bundle -----
     bundle = {
-        'model_r3_wrong': model_a,
-        'model_call_conclusive': model_b,
-        'feature_cols': list(X.columns),
-        'cat_cols': cat_cols,
-        'cv_auc_r3_wrong': auc_a,
-        'cv_auc_call_conclusive': auc_b,
+        'model_r3_wrong'            : model_a,
+        'model_call_conclusive'     : model_b,
+        'explainer_r3_wrong'        : explainer_a,
+        'explainer_call_conclusive': explainer_b, 
+        'feature_cols'              : list(X.columns),
+        'cat_cols'                  : cat_cols,
+        'cv_auc_r3_wrong'           : auc_a,
+        'cv_auc_call_conclusive'    : auc_b,
         'feature_importance_r3_wrong': fi_a.to_dict(),
     }
     with open(models_out, 'wb') as f:
@@ -329,6 +478,25 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
     df_out['oof_p_call_conclusive'] = oof_b
     df_out['both_conclusive'] = both_conclusive
     df_out['y_r3_wrong'] = y_r3_wrong
+    idx_a = df.index[mask_a]
+    shap_a_df = pd.DataFrame(
+        oof_shap_a,                          # returned from cv_train
+        columns=[f"shap_a_{c}" for c in X.columns],
+        index= idx_a
+        )
+    df_out = df_out.join(shap_a_df)
+    feature_names = list(X.columns)
+    shap_idx = 0
+    reasons = []
+    for i in range(len(df_out)):
+        if mask_a[i]:
+            reasons.append(get_top_reasons(oof_shap_a[shap_idx], feature_names))
+            shap_idx += 1
+        else:
+            reasons.append("N/A - Not in Model A")
+            
+    df_out['top_reasons_r3_wrong'] = reasons
+    
     df_out.to_csv(oof_out, index=False)
     print(f"Saved {oof_out}")
 

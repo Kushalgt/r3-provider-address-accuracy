@@ -62,6 +62,12 @@ DEFAULT_CONFIG = {
     'categorical_features': ['feat_state', 'feat_zip_prefix'],
     'high_risk_states': ['AL', 'MI', 'NJ'],
 }
+NO_CLAIMS_EXPECTED = [
+    "CLINICAL SOCIAL WORKER",
+    "NEUROPSYCHOLOGY", 
+    "PSYCHIATRY",
+    "BEHAVIORAL HEALTH",
+]
 
 
 def load_config(path='feature_config.yaml'):
@@ -161,41 +167,37 @@ def build_features(df, config=None):
         df = df.copy()
         df['R3'] = df['Final_R3_Reco_Address'].apply(normalize_r3_label)
 
-
     # -------- B: High-Gain Raw Features --------
-    if fams.get('raw_base_features'):
+    # if fams.get('raw_base_features'):
         # Only keeping columns that showed significant Gain
-        if "Phone" in df.columns:
-            df["area_code"] = df["Phone"].apply(extract_area_code)
-            _add_feature(f,'area_code',df["area_code"].astype(str),config)
+        # if "Phone" in df.columns:
+            # df["area_code"] = df["Phone"].apply(extract_area_code)
+            # _add_feature(f,'area_code',df["area_code"].astype(str),config)
         # _add_feature(f, 'raw_zip', df['Zip'].astype(str), config)
         # _add_feature(f, 'raw_comment_web_qc', df['Comment_Web_QC'].astype(str), config)
 
     # -------- C: Essential Engineered Base --------
     if fams.get('engineered_base'):
-        _add_feature(f, 'feat_address_length', df['Address1'].astype(str).str.len(), config)
+        # _add_feature(f, 'feat_address_length', df['Address1'].astype(str).str.len(), config)
         _add_feature(f, 'feat_r3_score_numeric', 
                      pd.to_numeric(df['Final_R3_Score_Address'], errors='coerce').fillna(0), config)
 
     # ... [Keep Claims and Evidence sections as they were performing well before] ...
     # -------- A: Specialty / Provenance --------
     if fams.get('specialty_provenance'):
-        _add_feature(f, 'feat_specialty_has_taxonomy',
-                     df['Specialty'].astype(str).str.contains(
-                         r'\([0-9A-Z]{6,}\)', regex=True).astype(int), config)
-        _add_feature(f, 'feat_specialty_length',
-                     df['Specialty'].astype(str).str.len(), config)
+        _add_feature(f, 'feat_low_claim_specialty',df['Specialty'].astype(str).str.contains(
+            'SOCIAL WORKER|NEUROPSYCH|PSYCHIATR|BEHAVIORAL|THERAPIST', na=False
+            ).astype(int), config)
 
-    # -------- B: R3 internals --------
+
+    # -------- B: R3 internals and web  --------
     _add_feature(f,'feat_web_is_accurate',(df["Manual_Address"] == "ACCURATE").astype(int),config)
     _add_feature(f,'feat_web_is_inaccurate',(df["Manual_Address"] == "INACCURATE").astype(int),config)
+    # 3. Web QC comment signal — exists at prediction time
+    _add_feature(f,'feat_web_says_not_found',df['Comment_Web_QC'].str.contains(
+    'NOT FOUND|NOT LISTED|NOT VERIFIED', na=False).astype(int),config)
     if fams.get('r3_internals'):
-        _add_feature(f, 'feat_r3_score', df['Final_R3_Score_Address'].astype(float), config)
-        _add_feature(f, 'feat_r3_is_accurate', (df['R3'] == 'ACCURATE').astype(int), config)
-        _add_feature(f, 'feat_r3_is_inaccurate', (df['R3'] == 'INACCURATE').astype(int), config)
-        _add_feature(f, 'feat_r3_is_inconclusive', (df['R3'] == 'INCONCLUSIVE').astype(int), config)
-        _add_feature(f, 'feat_r3_score_is_zero', (df['Final_R3_Score_Address'] <= 0).astype(int), config)
-        _add_feature(f, 'feat_r3_score_is_perfect', (df['Final_R3_Score_Address'] >= 100).astype(int), config)
+        _add_feature(f,'feat_r3_high_confidence',(f['feat_r3_score_numeric'] >= 90).astype(int),config)
 
     # -------- C: Evidence cube — raw --------
     if fams.get('evidence_cube_raw'):
@@ -240,15 +242,15 @@ def build_features(df, config=None):
 
     # -------- F: Geography --------
     if fams.get('geography'):
-        _add_feature(f, 'feat_state', df['State'].astype(str), config)
+        # _add_feature(f, 'feat_state', df['State'].astype(str), config)
         _add_feature(f, 'feat_state_high_risk',
                      df['State'].isin(high_risk).astype(int), config)
-        _add_feature(f, 'feat_zip_prefix',
-                     df['Zip'].astype(str).str.replace(r'\.0$', '', regex=True).str[:3], config)
+        # _add_feature(f, 'feat_zip_prefix',
+                    #  df['Zip'].astype(str).str.replace(r'\.0$', '', regex=True).str[:3], config)
 
     # -------- G: Provider attributes --------
     if fams.get('provider_attributes'):
-        _add_feature(f, 'feat_has_middle_name', df['MiddleName'].notna().astype(int), config)
+        # _add_feature(f, 'feat_has_middle_name', df['MiddleName'].notna().astype(int), config)
         _add_feature(f, 'feat_has_credentials', df['Credentials'].notna().astype(int), config)
         orig = df['OrigNPI'].astype(str).str.replace(r'\.0$', '', regex=True)
         curr = df['NPI'].astype(str).str.replace(r'\.0$', '', regex=True)
@@ -277,7 +279,7 @@ def build_features(df, config=None):
                      org.str.contains('HOSPITAL|HEALTH SYSTEM|MEDICAL CENTER', na=False).astype(int), config)
         _add_feature(f, 'feat_org_is_missing',
                      (org.isin(['NAN', 'NONE', 'NULL', '']) | df['OrganizationName'].isna()).astype(int), config)
-        _add_feature(f, 'feat_org_name_length', org.str.len(), config)
+        # _add_feature(f, 'feat_org_name_length', org.str.len(), config)
 
     # -------- I: Claims raw --------
     has_any = (df['N_CLAIMS'] > 0).astype(int)
@@ -287,19 +289,21 @@ def build_features(df, config=None):
         _add_feature(f, 'feat_claims_distinct_orgs', df['DISTINCT_ORGS'], config)
         _add_feature(f, 'feat_claims_distinct_addrs', df['DISTINCT_ADDRS'], config)
         _add_feature(f, 'feat_claims_days_since', df['DAYS_SINCE'], config)
-        _add_feature(f, 'feat_claims_addr_exact_match', df['ADDR_EXACT_MATCH'], config)
+        # _add_feature(f, 'feat_claims_addr_exact_match', df['ADDR_EXACT_MATCH'], config)
         _add_feature(f, 'feat_claims_zip_match', df['ZIP_MATCH'], config)
         _add_feature(f, 'feat_claims_street_zip_match', df['STREET_ZIP_MATCH'], config)
         _add_feature(f, 'feat_claims_recent_zip_match', df['RECENT_ZIP_MATCH'], config)
         _add_feature(f, 'feat_claims_recent_street_zip', df['RECENT_STREET_ZIP_MATCH'], config)
+        # 4. Claims address contradicts R3 directly
+        _add_feature(f,'feat_claims_zip_but_no_match',((df['N_CLAIMS'] > 5) & (df['ZIP_MATCH'] == 0)).astype(int),config)
 
     # -------- J: Claims derived --------
     if fams.get('claims_derived'):
         _add_feature(f, 'feat_claims_log1p_n', np.log1p(df['N_CLAIMS']), config)
         _add_feature(f, 'feat_claims_high_volume',
                      (df['N_CLAIMS'] >= th['claims_high_volume_min']).astype(int), config)
-        _add_feature(f, 'feat_claims_addrs_per_org',
-                     (df['DISTINCT_ADDRS'] / df['DISTINCT_ORGS'].replace(0, np.nan)).fillna(0), config)
+        # _add_feature(f, 'feat_claims_addrs_per_org',
+        #              (df['DISTINCT_ADDRS'] / df['DISTINCT_ORGS'].replace(0, np.nan)).fillna(0), config)
         _add_feature(f, 'feat_claims_recent_active',
                      ((df['DAYS_SINCE'] < th['claims_recent_days']) &
                       (df['N_CLAIMS'] > 0)).astype(int), config)
@@ -313,12 +317,11 @@ def build_features(df, config=None):
                      ((df['N_CLAIMS'] >= th['claims_strong_contradict_min']) &
                       (df['RECENT_ZIP_MATCH'] == 0) &
                       (df['DAYS_SINCE'] < th['claims_recent_days'])).astype(int), config)
+        # _add_feature(f,'feat_web_claims_both_confirm',((f['feat_web_is_accurate'] == 1) & (f['feat_claims_addr_exact_match'] == 1)).astype(int),config)
 
+        
     # -------- K: Cross-family interactions --------
     if fams.get('cross_interactions'):
-        spec_tax = df['Specialty'].astype(str).str.contains(r'\([0-9A-Z]{6,}\)', regex=True).astype(int)
-        _add_feature(f, 'feat_taxonomy_x_no_claims',
-                     (spec_tax & (1 - has_any)).astype(int), config)
         if 'feat_claims_strong_contradict' in f.columns:
             r3_acc = (df['R3'] == 'ACCURATE').astype(int)
             _add_feature(f, 'feat_r3acc_x_claims_contradict',
