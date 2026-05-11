@@ -45,8 +45,8 @@ DEPENDENCY (production only)
 
 import pandas as pd
 import numpy as np
-
-
+from claims_merger import build_claims_aggregates
+from utis import load_dataframe
 # ============================================================================
 # THE SQL QUERY (parameterized by NPI list)
 # ============================================================================
@@ -155,11 +155,16 @@ def load_from_csv(base_df, csv_path):
     Returns:
         pd.DataFrame with the standard claims aggregate schema
     """
-    df = pd.read_csv(csv_path)
-    npis_int = pd.to_numeric(base_df['OrigNPI'], errors='coerce').dropna().astype('int64').unique()
-    df['_npi_int'] = pd.to_numeric(df['BASE_NPI'], errors='coerce').astype('Int64')
-    df = df[df['_npi_int'].isin(npis_int)].drop(columns=['_npi_int'])
-    return df
+    claims_df = load_dataframe(csv_path)
+    # Build the aggregates
+    result = build_claims_aggregates(
+        base_df=base_df,
+        claims_df=claims_df,
+        output_csv_path="claims_aggregates.csv",  # optional — writes CSV if given
+    )
+    # result is also returned as a DataFrame, so you can use it directly
+    print(result.head())
+    return result
 
 
 def load_empty(base_df):
@@ -176,6 +181,15 @@ def load_empty(base_df):
 # ============================================================================
 # CONVENIENCE WRAPPER
 # ============================================================================
+def build_claims_aggregates_from_excel(
+    base_df,
+    claims_path: str,
+    claims_sheet=0,
+    **kwargs,
+) -> pd.DataFrame:
+    claims_df = pd.read_excel(claims_path, sheet_name=claims_sheet)
+    return build_claims_aggregates(base_df, claims_df, **kwargs)
+
 
 def load_claims_aggregates(base_df, source='empty'):
     """Single entry point for loading claims aggregates.
@@ -208,6 +222,7 @@ def load_claims_aggregates(base_df, source='empty'):
     if isinstance(source, pd.DataFrame):
         return source
     if isinstance(source, str):
+        
         return load_from_csv(base_df, source)
     # Otherwise assume it's a Snowflake connection
     return load_from_snowflake(base_df, source)

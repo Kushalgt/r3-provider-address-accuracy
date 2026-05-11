@@ -14,7 +14,7 @@
 
             // These are your sys.argv arguments. Update the paths to match where your data actually lives.
             "args": [
-                "Base data_hackathon.xlsx",
+                "'/Users/kushal.gupta/Downloads/Hackathon/Base data_hackathon.xlsx'",
                 "R3_Claims_Merged_data.csv"
             ],
             
@@ -77,6 +77,55 @@
             // Set to true to avoid stepping inside LightGBM/Pandas source code, 
             // keeping you focused only on your own files (train.py, features.py)
             "justMyCode": true 
-        }
+        },
+        {
+            "name": "Debug Main Pipeline",
+            "type": "debugpy",
+            "request": "launch",
+            
+            // If train.py is inside the 'src' folder, use this program path:
+            "program": "${workspaceFolder}/pipeline.py",
+            
+            // (Alternatively, if you prefer running it as a module):
+            // "module": "src.train",
+
+            // These are your sys.argv arguments. Update the paths to match where your data actually lives.
+            "args": [
+                "Base data_hackathon.xlsx",
+            ],
+            
+            // Forces VS Code to run from the root of your project folder so imports work
+            "cwd": "${workspaceFolder}",
+            
+            // Shows your print() statements in the normal VS Code terminal
+            "console": "integratedTerminal",
+            
+            // Set to true to avoid stepping inside LightGBM/Pandas source code, 
+            // keeping you focused only on your own files (train.py, features.py)
+            "justMyCode": true 
+        },
+        {
+            "name": "Debug App api",
+            "type": "debugpy",
+            "request": "launch",
+            
+            // If train.py is inside the 'src' folder, use this program path:
+            "program": "${workspaceFolder}/app.py",
+            
+            // (Alternatively, if you prefer running it as a module):
+            // "module": "src.train",
+
+            // These are your sys.argv arguments. Update the paths to match where your data actually lives.
+            "args": [],
+            // Forces VS Code to run from the root of your project folder so imports work
+            "cwd": "${workspaceFolder}",
+            
+            // Shows your print() statements in the normal VS Code terminal
+            "console": "integratedTerminal",
+            
+            // Set to true to avoid stepping inside LightGBM/Pandas source code, 
+            // keeping you focused only on your own files (train.py, features.py)
+            "justMyCode": true 
+        },
     ]
 }

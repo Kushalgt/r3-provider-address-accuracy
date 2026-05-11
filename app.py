@@ -27,6 +27,8 @@ import shutil
 import uuid
 import threading
 import traceback
+import snowflake.connector
+
 from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
@@ -73,11 +75,19 @@ def _run_pipeline_async(job_id, base_path, claims_path, claims_source_label, exp
         output_path = OUTPUT_DIR / f'job_{job_id}_predictions.xlsx'
 
         # claims_path is the file path for CSV uploads, or 'empty', or 'snowflake'
-        if claims_source_label == 'snowflake':
-            # In production, look up Snowflake creds from env and pass conn here.
-            # For prototype we treat 'snowflake' as 'empty' to keep this runnable.
-            claims_source = 'empty'
-        elif claims_source_label == 'csv' and claims_path:
+        # if claims_source_label == 'snowflake':
+        #     # In production, look up Snowflake creds from env and pass conn here.
+        #     # For prototype we treat 'snowflake' as 'empty' to keep this runnable.
+        #     claims_source = snowflake.connector.connect(
+        #                                             user=os.getenv("SNOWFLAKE_USER"),
+        #                                             password=os.getenv("SNOWFLAKE_PASSWORD"),
+        #                                             account=os.getenv("SNOWFLAKE_ACCOUNT"),
+        #                                             warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
+        #                                             database=os.getenv("SNOWFLAKE_DATABASE"),
+        #                                             schema=os.getenv("SNOWFLAKE_SCHEMA"),
+        #                                             role=os.getenv("SNOWFLAKE_ROLE")
+        #                                         )
+        if claims_source_label == 'csv' and claims_path:
             claims_source = str(claims_path)
         else:
             claims_source = 'empty'
@@ -115,7 +125,6 @@ async def upload(
     request: Request,
     base_file: UploadFile = File(...),
     claims_file: UploadFile = File(None),
-    claims_mode: str = Form('empty'),
     explain_mode: str = Form('template'),
 ):
     # Persist the uploaded base file
@@ -126,24 +135,43 @@ async def upload(
 
     # Persist the optional claims CSV
     claims_path = None
+    claims_mode = 'empty'
     if claims_file is not None and claims_file.filename:
         claims_path = UPLOAD_DIR / f'{job_uuid}_claims_{claims_file.filename}'
         with open(claims_path, 'wb') as f:
             shutil.copyfileobj(claims_file.file, f)
         claims_mode = 'csv'
 
-    job_id = db.create_job(base_file.filename, claims_mode)
+    # Resolve claims source
+    if claims_mode == 'csv' and claims_path:
+        claims_source = str(claims_path)
+    else:
+        claims_source = 'empty'
 
-    # Kick off the pipeline in a background thread
-    th = threading.Thread(
-        target=_run_pipeline_async,
-        args=(job_id, base_path, claims_path, claims_mode, explain_mode),
-        daemon=True,
+    output_path = OUTPUT_DIR / f'job_{job_uuid}_predictions.xlsx'
+
+    # Run the pipeline synchronously — no background thread, no DB job row.
+    try:
+        out_df, summary = run_pipeline(
+            base_path=str(base_path),
+            claims_source=claims_source,
+            models_path=str(MODELS_PATH),
+            output_path=str(output_path),
+            explain_mode=explain_mode,
+            progress_callback=None,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f'Pipeline failed: {e}')
+
+    if not output_path.exists():
+        raise HTTPException(status_code=500, detail='Pipeline finished but no output file was produced')
+
+    return FileResponse(
+        path=str(output_path),
+        filename=output_path.name,
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
-    th.start()
-
-    return RedirectResponse(url=f'/jobs/{job_id}', status_code=303)
-
 
 @app.get('/jobs', response_class=HTMLResponse)
 def jobs_list(request: Request):

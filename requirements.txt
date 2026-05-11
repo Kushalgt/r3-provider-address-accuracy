@@ -11,3 +11,6 @@ pandas-profiling
 seaborn
 ipywidgets
 shap
+dotenv
+snowflake
+openpyxl

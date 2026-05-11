@@ -394,13 +394,18 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
     claims.to_csv("claims_data.csv", index=False)
     config = load_config()
     feats = build_features(df, config=config)
-    feats.to_csv("features.csv",index=False)
+    temp_feats = feats
+    
     
     # ----- Define targets -----
     # Target A: R3 disagrees with Call QC 
     both_conclusive = (df['R3'].isin(['ACCURATE', 'INACCURATE']) &
                        df['CallQC'].isin(['ACCURATE', 'INACCURATE']))
     only_call_conclusive = (df['CallQC'].isin(['ACCURATE','INACCURATE']))
+    # temp_feats["target"] = df["R3"] != df["CallQC"]
+    # temp_feats    = temp_feats[both_conclusive.values].reset_index(drop=True)
+    
+    # temp_feats.to_csv("features.csv",index=False)
     y_r3_wrong = np.where(both_conclusive,
                            (df['R3'] != df['CallQC']).astype(int),
                            np.nan)

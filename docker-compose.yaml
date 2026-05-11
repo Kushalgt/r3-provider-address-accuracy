@@ -1,11 +1,18 @@
-version: '3.8'
 
 services:
-  r3-pipeline:
+  r3-evaluator-app:
     build: .
-    container_name: r3_pipeline_service
+    container_name: r3_hackathon_app
     ports:
-      - "8000:8000"
-    restart: unless-stopped
+      # Maps port 5000 on the host to port 5000 in the container
+      # (Change to "8501:8501" if using Streamlit)
+      - "5000:5000"
+    volumes:
+      # Maps your local directory to the container so evaluators 
+      # can easily see any output files generated locally
+      - .:/app
     environment:
-      - ENVIRONMENT=production
+      - FLASK_ENV=production
+    restart: always
+    env_file:
+      - .env

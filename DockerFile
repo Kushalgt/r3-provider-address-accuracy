@@ -1,33 +1,35 @@
-# 1. Use an official, lightweight Python image
-FROM python:3.10-slim
+# Use an official, lightweight Python runtime as a parent image
+FROM python:3.9-slim
 
-# 2. Set environment variables for optimized Python execution
-ENV PYTHONDONTWRITEBYTECODE=1 
-ENV PYTHONUNBUFFERED=1
-
-# 3. Install system dependencies
-# CRITICAL: libgomp1 is required for LightGBM to run on Debian-based Linux!
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgomp1 \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# 4. Set the working directory inside the container
+# Set the working directory inside the container
 WORKDIR /app
 
-# 5. Copy the requirements file first (to leverage Docker layer caching)
+# Prevent Python from writing pyc files to disc and buffering stdout/stderr
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies (useful for some ML libraries)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the requirements file into the container
 COPY requirements.txt .
 
-# 6. Install Python packages
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 7. Copy your entire project code into the container
+# Copy the rest of your project files into the container
 COPY . .
 
-# 8. Expose the port your FastAPI app will run on
-EXPOSE 8000
+# Expose the port your app runs on 
+# (Defaulting to 5000 for Flask, change to 8501 if using Streamlit)
+EXPOSE 5000
 
-# 9. Define the command to start the API
-# (Assuming your FastAPI app instance is named 'app' inside a file named 'main.py')
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Command to run your application
+# IF FLASK/FASTAPI:
+CMD ["python", "app.py"]
+
+# IF STREAMLIT, uncomment the line below instead:
+# CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

@@ -48,6 +48,7 @@ import os
 import pickle
 import pandas as pd
 import numpy as np
+from dotenv import load_dotenv
 
 from features import build_features, merge_claims, normalize_r3_label, load_config
 from claims_loader import load_claims_aggregates
@@ -55,7 +56,7 @@ from decide import (apply_decision, select_call_set,
                      KEEP_THRESHOLD, FLIP_THRESHOLD,
                      CALL_PWRONG_MIN, CALL_PCONC_MIN, MAX_CALL_FRACTION)
 from llm_explainer import explain_records
-
+from utis import load_dataframe
 
 # ============================================================================
 # OUTPUT COLUMN ORDER
@@ -74,6 +75,19 @@ OUTPUT_COLUMNS = [
     'decision_explanation', 'should_send_to_robocall',
     'in_call_pool_priority_rank',
 ]
+def get_top_reasons(shap_row, feature_names, n=3):
+    """Extracts the top N driving features for a single prediction."""
+    pairs = sorted(
+        zip(feature_names, shap_row),
+        key=lambda x: abs(x[1]),
+        reverse=True
+    )[:n]
+    reasons = []
+    for feat, val in pairs:
+        direction = "wrong" if val > 0 else "right"
+        reasons.append(f"{feat}({'+' if val>0 else ''}{val:.2f}→{direction})")
+    return " | ".join(reasons)
+
 
 
 # ============================================================================
@@ -122,14 +136,10 @@ def run_pipeline(base_path,
 
     # ---- Load base ----
     _p('Loading input file', 5)
-    if base_path.lower().endswith('.csv'):
-        base = pd.read_csv(base_path)
-    else:
-        base = pd.read_excel(base_path, sheet_name='Base Data', header=1)
+    base = load_dataframe(base_path)
     if 'Manual_ Address' in base.columns:
         base = base.rename(columns={'Manual_ Address': 'Manual_Address'})
     base['R3'] = base['Final_R3_Reco_Address'].apply(normalize_r3_label)
-
     n_records = len(base)
     _p(f'Loaded {n_records} records', 15)
 
@@ -152,8 +162,16 @@ def run_pipeline(base_path,
         bundle = pickle.load(fh)
 
     _p('Running predictions', 65)
-    X = feats.reindex(columns=bundle['feature_cols'])
+    #------------------------------- bundle decoding -------------------------------------------
+    model_a = bundle['model_r3_wrong']
+    model_b = bundle['model_call_conclusive']
+    explainer_a = bundle['explainer_r3_wrong']
+    feature_cols = bundle['feature_cols']
     cat_cols = bundle['cat_cols']
+    #---------------------------------------------------
+    
+    X = feats.reindex(columns=feature_cols)
+    
     for c in cat_cols:
         if c in X.columns:
             X[c] = X[c].astype(str).astype('category')
@@ -161,8 +179,16 @@ def run_pipeline(base_path,
         if c not in cat_cols:
             X[c] = pd.to_numeric(X[c], errors='coerce').fillna(-1)
 
-    p_wrong = bundle['model_r3_wrong'].predict_proba(X)[:, 1]
-    p_conc  = bundle['model_call_conclusive'].predict_proba(X)[:, 1]
+
+    p_wrong = model_a.predict_proba(X)[:, 1]
+    p_conc  = model_b.predict_proba(X)[:, 1]
+    shap_values = explainer_a.shap_values(X)
+    if isinstance(shap_values, list):
+        shap_values = shap_values[1] # LightGBM binary classification returns a list, index 1 is positive class
+    top_reasons = []
+    for i in range(len(X)):
+        reasons = get_top_reasons(shap_values[i], feature_cols, n=3)
+        top_reasons.append(reasons)
 
     # ---- Build per-record working frame ----
     work = base.copy()
@@ -171,7 +197,8 @@ def run_pipeline(base_path,
     work['p_r3_wrong'] = p_wrong
     work['p_r3_wrong_confidence'] = np.maximum(p_wrong, 1 - p_wrong)
     work['p_call_conclusive'] = p_conc
-    work['triage_priority'] = p_wrong * p_conc
+    work['top_reasons_r3_wrong'] = top_reasons
+    work['explanation'] = explain_records(work, mode='auto')
 
     # ---- Select call pool with 30% cap ----
     _p('Selecting call pool (30% cap)', 75)

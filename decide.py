@@ -31,8 +31,8 @@ import pandas as pd
 # POLICY THRESHOLDS — Balanced default
 # ============================================================================
 
-KEEP_THRESHOLD     = 0.30
-FLIP_THRESHOLD     = 0.80
+KEEP_THRESHOLD     = 0.34  # Anything below this is kept as R3's original answer
+FLIP_THRESHOLD     = 0.80  # Highly confident failures
 CALL_PWRONG_MIN    = 0.50
 CALL_PCONC_MIN     = 0.80
 CALL_YIELD         = 0.40
@@ -46,58 +46,220 @@ MAX_CALL_FRACTION  = 0.30
 # CALL ELIGIBILITY (eligibility rule + cap)
 # ============================================================================
 
-def select_call_set(df, pw_min=CALL_PWRONG_MIN, pc_min=CALL_PCONC_MIN,
-                    max_call_fraction=MAX_CALL_FRACTION):
-    """Pick which records to call.
-    
-    Step 1: dual-threshold filter — record must look uncertain enough about
-            R3 AND likely to actually answer the phone.
-    Step 2: cap — keep at most max_call_fraction of total records, ranked
-            by triage priority = P(R3 wrong) * P(call conclusive).
+import numpy as np
+import pandas as pd
+
+# Constants
+MAX_CALL_FRACTION = 0.30
+
+# Pass 1 / Pass 2 call_conclusive thresholds
+PCONC_PASS1_MIN = 0.75
+PCONC_PASS2_MIN = 0.65
+
+# Model-inconclusive range
+PWRONG_INCONC_LOW  = 0.14
+PWRONG_INCONC_HIGH = 0.54
+
+# Likely-wrong range
+PWRONG_LIKELY_LOW  = 0.53
+PWRONG_LIKELY_HIGH = 0.75
+
+# Hospital IVR-waste guard
+HOSPITAL_PCONC_MIN = 0.30
+
+
+def select_call_set(df, max_call_fraction=MAX_CALL_FRACTION):
+    """Pick which records to call, using the 3-priority / 2-pass triage rule.
+
+    Pass 1: p_call_conclusive >= 0.75
+        Priority 1 — R3 engine output = INCONCLUSIVE
+        Priority 2 — model-inconclusive (0.14 <= p_r3_wrong <= 0.54)
+        Priority 3 — likely R3 wrong (0.53 <= p_r3_wrong <= 0.75)
+
+    Pass 2: 0.65 <= p_call_conclusive < 0.75 (only if cap not yet hit)
+        Same 3 priorities, same order.
+
+    Within each priority, records are ranked by p_call_conclusive descending.
+    Priorities are mutually exclusive: a record that qualifies for P1 will
+    not also be considered under P2/P3.
     """
-    pw = df['p_r3_wrong'].fillna(0.5)
-    pc = df['p_call_conclusive']
-    eligible = (pw >= pw_min) & (pc >= pc_min)
-
-    pool = df.loc[eligible].copy()
-    pool['_priority'] = pw[eligible] * pc[eligible]
-    pool = pool.sort_values('_priority', ascending=False)
-
     cap = int(np.floor(len(df) * max_call_fraction))
+    if cap <= 0:
+        return set()
+
+    pw = df['p_r3_wrong'].fillna(0.5)
+    pc = df['p_call_conclusive'].fillna(0.0)
+    r3 = df.get('R3', pd.Series(['UNKNOWN'] * len(df), index=df.index)) \
+            .astype(str).str.upper()
+
+    # Hospital IVR-waste guard: a hospital with very low p_call_conclusive
+    # is removed from call eligibility entirely (no point burning the budget).
+    is_hosp = df.get('feat_org_is_hospital', pd.Series(0, index=df.index)).fillna(0).astype(int)
+    hosp_block = (is_hosp == 1) & (pc < HOSPITAL_PCONC_MIN)
+
+    # Per-record priority bucket (1 = highest, 3 = lowest, 0 = not eligible).
+    # Mutually exclusive: assigned to the highest priority it qualifies for.
+    priority = pd.Series(0, index=df.index, dtype=int)
+    is_p1 = (r3 == 'INCONCLUSIVE')
+    is_p2 = (pw >= PWRONG_INCONC_LOW) & (pw <= PWRONG_INCONC_HIGH)
+    is_p3 = (pw >= PWRONG_LIKELY_LOW) & (pw <= PWRONG_LIKELY_HIGH)
+    priority[is_p3] = 3
+    priority[is_p2] = 2  # overwrites P3 where overlap
+    priority[is_p1] = 1  # overwrites P2/P3 where overlap
+
+    # Pass = 1 if pc >= 0.75, 2 if 0.65 <= pc < 0.75, else 0 (not eligible)
+    pass_id = pd.Series(0, index=df.index, dtype=int)
+    pass_id[(pc >= PCONC_PASS1_MIN)] = 1
+    pass_id[(pc >= PCONC_PASS2_MIN) & (pc < PCONC_PASS1_MIN)] = 2
+
+    eligible = (priority > 0) & (pass_id > 0) & (~hosp_block)
+
+    pool = df.loc[eligible, ['Row ID']].copy()
+    pool['_pass']     = pass_id[eligible].values
+    pool['_priority'] = priority[eligible].values
+    pool['_pc']       = pc[eligible].values
+
+    # Sort: pass asc → priority asc → p_call_conclusive desc
+    # That's exactly the order the spec describes.
+    pool = pool.sort_values(
+        by=['_pass', '_priority', '_pc'],
+        ascending=[True, True, False],
+    )
+
     if len(pool) > cap:
         pool = pool.head(cap)
 
     return set(pool['Row ID'].tolist())
+def select_call_set(df, max_call_fraction=MAX_CALL_FRACTION):
+    """... (same docstring) ...
 
+    Returns:
+        (call_set, rank_map) where
+            call_set: set of Row IDs selected for the call queue
+            rank_map: dict {Row ID -> rank} with rank=1 being highest priority
+    """
+    cap = int(np.floor(len(df) * max_call_fraction))
+    if cap <= 0:
+        return set(), {}
+
+    pw = df['p_r3_wrong'].fillna(0.5)
+    pc = df['p_call_conclusive'].fillna(0.0)
+    r3 = df.get('R3', pd.Series(['UNKNOWN'] * len(df), index=df.index)) \
+            .astype(str).str.upper()
+
+    is_hosp = df.get('feat_org_is_hospital', pd.Series(0, index=df.index)).fillna(0).astype(int)
+    hosp_block = (is_hosp == 1) & (pc < HOSPITAL_PCONC_MIN)
+
+    priority = pd.Series(0, index=df.index, dtype=int)
+    is_p1 = (r3 == 'INCONCLUSIVE')
+    is_p2 = (pw >= PWRONG_INCONC_LOW) & (pw <= PWRONG_INCONC_HIGH)
+    is_p3 = (pw >= PWRONG_LIKELY_LOW) & (pw <= PWRONG_LIKELY_HIGH)
+    priority[is_p3] = 3
+    priority[is_p2] = 2
+    priority[is_p1] = 1
+
+    pass_id = pd.Series(0, index=df.index, dtype=int)
+    pass_id[pc >= PCONC_PASS1_MIN] = 1
+    pass_id[(pc >= PCONC_PASS2_MIN) & (pc < PCONC_PASS1_MIN)] = 2
+
+    eligible = (priority > 0) & (pass_id > 0) & (~hosp_block)
+
+    pool = df.loc[eligible, ['Row ID']].copy()
+    pool['_pass']     = pass_id[eligible].values
+    pool['_priority'] = priority[eligible].values
+    pool['_pc']       = pc[eligible].values
+
+    pool = pool.sort_values(
+        by=['_pass', '_priority', '_pc'],
+        ascending=[True, True, False],
+    )
+
+    if len(pool) > cap:
+        pool = pool.head(cap)
+
+    call_set = set(pool['Row ID'].tolist())
+    rank_map = {row_id: i + 1 for i, row_id in enumerate(pool['Row ID'].tolist())}
+    return call_set, rank_map
 
 # ============================================================================
 # DECISION RULE (per record)
 # ============================================================================
+def apply_decision(row, call_set):
+    """Determine the final label for one record.
 
-def apply_decision(row, call_set, keep_t=KEEP_THRESHOLD, flip_t=FLIP_THRESHOLD):
-    """Determine the action for one record. Returns (decision_label, reason_code)."""
-    r3 = row['R3']
+    Order of evaluation:
+      1. Hard rules forcing INACCURATE
+      2. Hard rules forcing ACCURATE (incl. ML vetoes / false-negative rescues)
+      3. High-confidence R3 veto (R3 score >= 90 and pw < 0.75)
+      4. Triage outcome (SEND_TO_CALL if in call_set)
+      5. Status assignment from p_r3_wrong thresholds:
+            pw > 0.53          → Flip R3
+            pw < 0.15          → Retain R3
+            0.14 <= pw <= 0.54 → Inconclusive
+    """
+    r3 = str(row.get('R3', 'UNKNOWN')).upper()
     pw = row.get('p_r3_wrong', 0.5)
-    if pd.isna(pw): pw = 0.5
+    if pd.isna(pw):
+        pw = 0.5
 
-    if r3 == 'INCONCLUSIVE':
-        if row['Row ID'] in call_set:
-            return ('SEND_TO_CALL', 'R3_INCONCLUSIVE_CALL_LIKELY_CONCLUSIVE')
-        return ('INCONCLUSIVE', 'R3_INCONCLUSIVE_CALL_UNLIKELY')
+    # ---------------------------------------------------------
+    # STAGE 1 — Hard deterministic rules: FORCE INACCURATE
+    # ---------------------------------------------------------
+    if row.get('feat_npi_deactivated') == 1:
+        return ('INACCURATE', 'RULE_INACC_NPI_DEACTIVATED')
 
-    if pw < keep_t:
-        return (r3, 'KEEP_R3_HIGH_CONFIDENCE')
+    if row.get('feat_claims_distinct_addrs', 0) >= 2 and row.get('feat_claims_zip_match', 1) == 0:
+        return ('INACCURATE', 'RULE_INACC_CLAIMS_MISMATCH_ROVING')
 
-    if pw > flip_t:
-        if row['Row ID'] in call_set:
-            return ('SEND_TO_CALL', 'HIGH_CONF_FLIP_VERIFY_BY_CALL')
+    if row.get('feat_web_says_not_found_and_not_empty') == 1:
+        return ('INACCURATE', 'RULE_INACC_WEB_EXPLICIT_NOT_FOUND')
+
+    if row.get('feat_claims_zip_but_no_match') == 1 and row.get('feat_web_comment_empty_or_zero') == 1:
+        return ('INACCURATE', 'RULE_INACC_74_PERCENT_TRAP')
+
+    # ---------------------------------------------------------
+    # STAGE 2 — Hard deterministic rules: FORCE ACCURATE
+    # ---------------------------------------------------------
+    # Active billing at the same address — strongest single signal that the
+    # provider is currently practising there.
+    if row.get('feat_claims_recent_street_zip') == 1:
+        return ('ACCURATE', 'RULE_ACC_CLAIMS_RECENT_EXACT')
+
+    # R3 said INACCURATE but claims strongly corroborate the address.
+    if row.get('feat_r3ina_x_claims_corroborate') == 1:
+        return ('ACCURATE', 'RULE_ACC_FALSE_NEGATIVE_RESCUE')
+
+    # 3+ distinct web sources all confirm — convergent evidence.
+    if row.get('feat_ev_total_found', 0) >= 3:
+        return ('ACCURATE', 'RULE_ACC_WEB_CONVERGENCE')
+
+    # ---------------------------------------------------------
+    # STAGE 3 — High-confidence R3 veto
+    # If R3 was very confident and the model isn't strongly against it,
+    # keep R3's verdict regardless of the model.
+    # ---------------------------------------------------------
+    if row.get('feat_r3_score_numeric', 0) >= 90 and pw < 0.75:
+        return (r3, 'ML_VETO_R3_HIGH_CONFIDENCE')
+
+    # ---------------------------------------------------------
+    # STAGE 4 — Triage outcome
+    # ---------------------------------------------------------
+    if row.get('Row ID') in call_set:
+        return ('SEND_TO_CALL', 'TRIAGED_TO_CALL')
+
+    # ---------------------------------------------------------
+    # STAGE 5 — Status from p_r3_wrong thresholds
+    # ---------------------------------------------------------
+    if pw < 0.15:
+        return (r3, 'RETAIN_R3_LOW_PWRONG')
+
+    if pw > 0.53:
+        # Flip the existing R3 verdict.
         flipped = 'INACCURATE' if r3 == 'ACCURATE' else 'ACCURATE'
-        return (flipped, 'HIGH_CONF_PASSIVE_FLIP')
+        return (flipped, 'FLIP_R3_HIGH_PWRONG')
 
-    if row['Row ID'] in call_set:
-        return ('SEND_TO_CALL', 'MEDIUM_UNCERTAINTY_CALLED')
-    return (r3, 'MEDIUM_UNCERTAINTY_KEEP_R3_FAILED_CALL_THRESHOLDS')
-
+    # Anything else (0.15 <= pw <= 0.53) is model-inconclusive territory.
+    return ('INCONCLUSIVE', 'MODEL_INCONCLUSIVE_NOT_CALLED')
 
 # ============================================================================
 # CALL OUTCOME SIMULATION (for evaluation only)

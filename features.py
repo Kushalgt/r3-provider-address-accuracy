@@ -191,11 +191,30 @@ def build_features(df, config=None):
 
 
     # -------- B: R3 internals and web  --------
-    _add_feature(f,'feat_web_is_accurate',(df["Manual_Address"] == "ACCURATE").astype(int),config)
-    _add_feature(f,'feat_web_is_inaccurate',(df["Manual_Address"] == "INACCURATE").astype(int),config)
+    # Handles "", "0", and NaN/None
+    # _add_feature(f, 'feat_web_comment_empty_or_zero', df["Comment_Web_QC"].fillna("").isin(["", "0"]).astype(int), config)
+   # Create a robust comparison mask
+    is_exact_match = (
+    df["Manual_Address"].str.strip().str.lower() == 
+    df["R3"].str.strip().str.lower()
+    )
+    # Add the feature
+    # _add_feature(f, 'feat_r3_equal_to_manual_address', is_exact_match.astype(int), config)
+    
     # 3. Web QC comment signal — exists at prediction time
-    _add_feature(f,'feat_web_says_not_found',df['Comment_Web_QC'].str.contains(
-    'NOT FOUND|NOT LISTED|NOT VERIFIED', na=False).astype(int),config)
+# 1. Check for the keywords
+    contains_keywords = df['Comment_Web_QC'].str.contains('NOT FOUND|NOT LISTED|NOT VERIFIED', na=False)
+
+# 2. Check that it is not empty or "0" (using the ~ operator to negate .isin)
+    is_not_empty = ~df["Comment_Web_QC"].fillna("").isin(["", "0"])
+
+# 3. Combine them with bitwise AND (&)
+    _add_feature(
+    f, 
+    'feat_web_says_not_found_and_not_empty', 
+    (contains_keywords & is_not_empty).astype(int), 
+    config
+    )
     if fams.get('r3_internals'):
         _add_feature(f,'feat_r3_high_confidence',(f['feat_r3_score_numeric'] >= 90).astype(int),config)
 
@@ -284,7 +303,7 @@ def build_features(df, config=None):
     # -------- I: Claims raw --------
     has_any = (df['N_CLAIMS'] > 0).astype(int)
     if fams.get('claims_raw'):
-        _add_feature(f, 'feat_claims_has_any', has_any, config)
+        # _add_feature(f, 'feat_claims_has_any', has_any, config)
         _add_feature(f, 'feat_claims_n', df['N_CLAIMS'], config)
         _add_feature(f, 'feat_claims_distinct_orgs', df['DISTINCT_ORGS'], config)
         _add_feature(f, 'feat_claims_distinct_addrs', df['DISTINCT_ADDRS'], config)

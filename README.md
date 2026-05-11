@@ -219,3 +219,24 @@ For production, swap to PostgreSQL by changing one line in `db.py` (`sqlite3.con
 The core pipeline (features → models → decisions → output) is fully functional and
 verified. Everything above the pipeline is the prototype layer that you can swap or
 extend without touching the ML.
+
+## 🚀 How to Run & Evaluate the Model
+
+We have Dockerized this application to ensure a seamless evaluation process with zero dependency conflicts.
+
+### Prerequisites
+* Ensure you have [Docker](https://www.docker.com/products/docker-desktop) installed and running on your machine.
+
+### Quick Start
+1. Clone or extract this project folder.
+2. Open your terminal/command prompt and navigate to the project root directory (where `docker-compose.yml` is located).
+3. Run the following command to build and start the application:
+   ```bash
+   docker-compose up --build
+
+## To see the sample output you can refer 
+1. outupt_data -> pipeline_output.xlsx
+
+## To see test output i.e How model performed on test data
+1. refer, output_data -> oof_predictions.csv
+Note. in oof_predictions you get model's output on every input data, since we are using K-FOLD technique
