@@ -202,12 +202,9 @@ def run_pipeline(base_path,
 
     # ---- Select call pool with 30% cap ----
     _p('Selecting call pool (30% cap)', 75)
-    call_set = select_call_set(work)
+    call_set, rank_map = select_call_set(work)
 
     # Compute priority ranks within the call pool
-    pool_df = work[work['Row ID'].isin(call_set)].sort_values('triage_priority', ascending=False)
-    pool_df['_rank'] = range(1, len(pool_df) + 1)
-    rank_map = dict(zip(pool_df['Row ID'], pool_df['_rank']))
     work['in_call_pool_priority_rank'] = work['Row ID'].map(rank_map)
 
     # ---- Apply decision rules ----
