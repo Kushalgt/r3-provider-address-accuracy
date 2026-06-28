@@ -14,8 +14,8 @@
 
             // These are your sys.argv arguments. Update the paths to match where your data actually lives.
             "args": [
-                "'/Users/kushal.gupta/Downloads/Hackathon/Base data_hackathon.xlsx'",
-                "R3_Claims_Merged_data.csv"
+                "/Users/kushal.gupta/Downloads/Hackathon/Base data_hackathon.xlsx",
+                "/Users/kushal.gupta/Downloads/R3_Claims_Merged_data.csv"
             ],
             
             // Forces VS Code to run from the root of your project folder so imports work
