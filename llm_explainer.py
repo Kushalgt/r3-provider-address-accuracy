@@ -85,8 +85,6 @@ def _root_cause(row) -> str:
         cues.append("provider's personal sources mention this address but org does not (departure pattern)")
     if row.get('feat_only_ov_found', 0) == 1:
         cues.append("org lists this address but provider has no presence there (ghost listing)")
-    if row.get('feat_npi_changed_by_r3', 0) == 1:
-        cues.append("R3 had to correct the NPI itself, indicating broader record staleness")
     if row.get('feat_npi_deactivated', 0) == 1:
         cues.append("NPI is flagged as deactivated")
     if not cues:
@@ -162,7 +160,6 @@ def _build_llm_prompt(row) -> str:
         'claims_strong_corroborate': bool(row.get('feat_claims_strong_corroborate', 0)),
         'only_provider_view_found_address': bool(row.get('feat_only_pv_found', 0)),
         'only_org_view_found_address': bool(row.get('feat_only_ov_found', 0)),
-        'npi_changed_by_r3': bool(row.get('feat_npi_changed_by_r3', 0)),
         'npi_deactivated': bool(row.get('feat_npi_deactivated', 0)),
     }
     return f"Record facts:\n{json.dumps(facts, indent=2)}\n\nWrite the one-sentence explanation."

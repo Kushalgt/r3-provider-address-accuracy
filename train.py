@@ -110,6 +110,12 @@ def prepare_X(features_df, config=None):
         config = load_config()
     cat_list = config.get('categorical_features', [])
     X = features_df.copy()
+    # Drop any leaked label/bookkeeping columns. 'target' == (R3 != CallQC) is the
+    # actual answer for Model A and must never be a feature; leaving it in caused
+    # perfect (1.0) triage precision. Only feature columns belong in X.
+    for leak_col in ['target', 'y_r3_wrong', 'y_call_conclusive', 'CallQC', 'R3']:
+        if leak_col in X.columns:
+            X = X.drop(columns=[leak_col])
     cat_cols = [c for c in cat_list if c in X.columns]
     for c in cat_cols:
         X[c] = X[c].astype(str).astype('category')
@@ -395,10 +401,10 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
     config = load_config()
     both_conclusive = (df['R3'].isin(['ACCURATE', 'INACCURATE']) &
                        df['CallQC'].isin(['ACCURATE', 'INACCURATE']))
-    df = df[(
-    df['R3'].isin(['ACCURATE', 'INACCURATE']) &
-    df['CallQC'].isin(['ACCURATE', 'INACCURATE'])
-)]
+    # NOTE: do NOT pre-filter df to both-conclusive here. Model A is masked to the
+    # both-conclusive subset via mask_a below; Model B (P(call conclusive)) must see
+    # ALL records. Filtering here shrank df to 1,973 and broke both the broadcast at
+    # np.where(both_conclusive, ...) and Model B's design.
     feats = build_features(df, config=config)
     feats["target"] = df["R3"] != df["CallQC"]
     feats.to_csv("features.csv", index=False)

@@ -2,34 +2,34 @@
 FROM python:3.9-slim
 
 # Set the working directory inside the container
-WORKDIR /app
+# WORKDIR /app
 
-# Prevent Python from writing pyc files to disc and buffering stdout/stderr
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# # Prevent Python from writing pyc files to disc and buffering stdout/stderr
+# ENV PYTHONDONTWRITEBYTECODE=1
+# ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies (useful for some ML libraries)
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
+# # Install system dependencies (useful for some ML libraries)
+# RUN apt-get update && apt-get install -y \
+#     build-essential \
+#     libgomp1 \
+#     && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file into the container
-COPY requirements.txt .
+# # Copy the requirements file into the container
+# COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# # Install Python dependencies
+# RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your project files into the container
-COPY . .
+# # Copy the rest of your project files into the container
+# COPY . .
 
-# Expose the port your app runs on 
-# (Defaulting to 5000 for Flask, change to 8501 if using Streamlit)
-EXPOSE 5000
+# # Expose the port your app runs on 
+# # (Defaulting to 5000 for Flask, change to 8501 if using Streamlit)
+# EXPOSE 5000
 
-# Command to run your application
-# IF FLASK/FASTAPI:
-CMD ["python", "app.py"]
+# # Command to run your application
+# # IF FLASK/FASTAPI:
+# CMD ["python", "app.py"]
 
 # IF STREAMLIT, uncomment the line below instead:
 # CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

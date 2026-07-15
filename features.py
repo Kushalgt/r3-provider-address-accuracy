@@ -271,9 +271,8 @@ def build_features(df, config=None):
     if fams.get('provider_attributes'):
         # _add_feature(f, 'feat_has_middle_name', df['MiddleName'].notna().astype(int), config)
         _add_feature(f, 'feat_has_credentials', df['Credentials'].notna().astype(int), config)
-        orig = df['OrigNPI'].astype(str).str.replace(r'\.0$', '', regex=True)
-        curr = df['NPI'].astype(str).str.replace(r'\.0$', '', regex=True)
-        _add_feature(f, 'feat_npi_changed_by_r3', (orig != curr).astype(int), config)
+        # NOTE: 'feat_npi_changed_by_r3' removed — the NPI column is a hashed 32-char hex
+        # digest, not comparable to plaintext OrigNPI, so the signal was degenerate (always 1).
         npi_status = df['Mcheck R3 NPI Status Recommendation'].astype(str).str.upper()
         _add_feature(f, 'feat_npi_deactivated', npi_status.str.contains('DEACTIV', na=False).astype(int), config)
         name_reco = df['Mcheck R3 Name Recommendation'].astype(str).str.upper()
@@ -393,7 +392,7 @@ def list_active_features(config=None):
             if _g(n): active.append(n)
     if fams.get('provider_attributes'):
         for n in ['feat_has_middle_name', 'feat_has_credentials',
-                  'feat_npi_changed_by_r3', 'feat_npi_deactivated',
+                  'feat_npi_deactivated',
                   'feat_r3_suggests_name_change', 'feat_cred_is_md_do',
                   'feat_cred_is_midlevel']:
             if _g(n): active.append(n)

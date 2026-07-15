@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "senior-data-scientist": {
+      "source": "alirezarezvani/claude-skills",
+      "sourceType": "github",
+      "skillPath": "engineering-team/skills/senior-data-scientist/SKILL.md",
+      "computedHash": "15d0dbc110f7eac9d712d1062341300d02679cf8aa3dbd03017cbd6e37d798c9"
+    }
+  }
+}

@@ -11,7 +11,7 @@ The output DataFrame has these columns ready for export to Excel/CSV or
 display in a UI data grid:
 
     Identifiers:
-      Row ID, OrigNPI, NPI, FirstName, LastName, Specialty, Address1,
+      Row ID, OrigNPI, FirstName, LastName, Specialty, Address1,
       City, State, Zip, Phone, OrganizationName
 
     Original verdict:
@@ -64,7 +64,7 @@ from utis import load_dataframe
 
 OUTPUT_COLUMNS = [
     # identifiers
-    'Row ID', 'OrigNPI', 'NPI', 'FirstName', 'LastName', 'Specialty',
+    'Row ID', 'OrigNPI', 'FirstName', 'LastName', 'Specialty',
     'Address1', 'City', 'State', 'Zip', 'Phone', 'OrganizationName',
     # original
     'R3_label', 'R3_score',
