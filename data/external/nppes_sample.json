@@ -1,0 +1,893 @@
+{
+ "1083291587": {
+  "number": "1083291587",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "MD",
+   "last_updated": "2024-07-02"
+  },
+  "taxonomies": [
+   {
+    "code": "208000000X",
+    "desc": "Pediatrics",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "1964 W 11 MILE RD",
+    "postal_code": "480723046"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "13500 E MCNICHOLS RD",
+    "postal_code": "482053426"
+   }
+  ],
+  "practiceLocations": [
+   {
+    "address_1": "1964 W 11 MILE RD",
+    "postal_code": "480723046"
+   }
+  ]
+ },
+ "1063067304": {
+  "number": "1063067304",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "PsyD",
+   "last_updated": "2025-05-14"
+  },
+  "taxonomies": [
+   {
+    "code": "103TC0700X",
+    "desc": "Psychologist, Clinical",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "4211 PARKWAY PLACE DR SW",
+    "postal_code": "494182695"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "300 68TH ST SE",
+    "postal_code": "495486927"
+   }
+  ],
+  "practiceLocations": [
+   {
+    "address_1": "300 68TH ST SE",
+    "postal_code": "495486927"
+   },
+   {
+    "address_1": "6500 BYRON CENTER AVE SW",
+    "postal_code": "493159080"
+   }
+  ]
+ },
+ "1639836174": {
+  "number": "1639836174",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": null,
+   "last_updated": "2024-09-17"
+  },
+  "taxonomies": [
+   {
+    "code": "363LF0000X",
+    "desc": "Nurse Practitioner, Family",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "4701 TOWNE CENTRE RD",
+    "postal_code": "486042834"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "6273 PADDOCK LN",
+    "postal_code": "486032734"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1033397518": {
+  "number": "1033397518",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "Ph.D.",
+   "last_updated": "2024-12-17"
+  },
+  "taxonomies": [
+   {
+    "code": "103TC0700X",
+    "desc": "Psychologist, Clinical",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "30400 TELEGRAPH RD",
+    "postal_code": "480254537"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "30400 TELEGRAPH RD",
+    "postal_code": "480254537"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1275503690": {
+  "number": "1275503690",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "M.D.",
+   "last_updated": "2024-03-05"
+  },
+  "taxonomies": [
+   {
+    "code": "207RE0101X",
+    "desc": "Internal Medicine, Endocrinology, Diabetes & Metabolism",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "6304 USA HEALTH BLVD",
+    "postal_code": "366080020"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "PO BOX 21595",
+    "postal_code": "049154112"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1023577962": {
+  "number": "1023577962",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "DO",
+   "last_updated": "2022-08-18"
+  },
+  "taxonomies": [
+   {
+    "code": "207R00000X",
+    "desc": "Internal Medicine",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "PO BOX 517",
+    "postal_code": "359570517"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "2692 US HIGHWAY 431",
+    "postal_code": "359575845"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1275952517": {
+  "number": "1275952517",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "MD",
+   "last_updated": "2026-02-19"
+  },
+  "taxonomies": [
+   {
+    "code": "208000000X",
+    "desc": "Pediatrics",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "350 SPRINGVILLE STA",
+    "postal_code": "351466163"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "350 SPRINGVILLE STA",
+    "postal_code": "351466163"
+   }
+  ],
+  "practiceLocations": [
+   {
+    "address_1": "2332 GALIANO ST",
+    "postal_code": "331345402"
+   }
+  ]
+ },
+ "1356330054": {
+  "number": "1356330054",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "MD",
+   "last_updated": "2026-02-04"
+  },
+  "taxonomies": [
+   {
+    "code": "207RC0000X",
+    "desc": "Internal Medicine, Cardiovascular Disease",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "3980 COLONNADE PKWY",
+    "postal_code": "352432382"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "PO BOX 11407, DEPARTMENT 8007",
+    "postal_code": "352468007"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1093715369": {
+  "number": "1093715369",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "M.D.",
+   "last_updated": "2025-08-18"
+  },
+  "taxonomies": [
+   {
+    "code": "207RX0202X",
+    "desc": "Internal Medicine, Medical Oncology",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "1200 US HIGHWAY 22 3RD FL",
+    "postal_code": "088072943"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "629 CRANBURY RD FL 2",
+    "postal_code": "088164096"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1023215217": {
+  "number": "1023215217",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "M.D.",
+   "last_updated": "2016-03-31"
+  },
+  "taxonomies": [
+   {
+    "code": "208000000X",
+    "desc": "Pediatrics",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "100 E PENN SQ",
+    "postal_code": "191073323"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "100 E PENN SQ",
+    "postal_code": "191073323"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1053479246": {
+  "number": "1053479246",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "MD",
+   "last_updated": "2011-01-13"
+  },
+  "taxonomies": [
+   {
+    "code": "208000000X",
+    "desc": "Pediatrics",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "600 MARLTON PIKE W",
+    "postal_code": "080023598"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "402 LIPPINCOTT DR",
+    "postal_code": "080534112"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1053524777": {
+  "number": "1053524777",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "MD",
+   "last_updated": "2007-07-08"
+  },
+  "taxonomies": [
+   {
+    "code": "208000000X",
+    "desc": "Pediatrics",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "2500 LEMOINE AVE",
+    "postal_code": "07024"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "2500 LEMOINE AVE",
+    "postal_code": "07024"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1174783336": {
+  "number": "1174783336",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "MD",
+   "last_updated": "2021-11-19"
+  },
+  "taxonomies": [
+   {
+    "code": "207RI0011X",
+    "desc": "Internal Medicine, Interventional Cardiology",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "161 FORT WASHINGTON AVE FL 6",
+    "postal_code": "100323729"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "161 FORT WASHINGTON AVE FL 6",
+    "postal_code": "100323729"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1205425204": {
+  "number": "1205425204",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "APN",
+   "last_updated": "2025-10-22"
+  },
+  "taxonomies": [
+   {
+    "code": "363LF0000X",
+    "desc": "Nurse Practitioner, Family",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "354 HURFFVILLE CROSSKEYS RD BLDG 2",
+    "postal_code": "080803550"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "354 HURFFVILLE CROSSKEYS RD BLDG 2",
+    "postal_code": "080803550"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1699857854": null,
+ "1417191917": {
+  "number": "1417191917",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "M.D.",
+   "last_updated": "2022-07-21"
+  },
+  "taxonomies": [
+   {
+    "code": "207N00000X",
+    "desc": "Dermatology",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "347 MOUNT PLEASANT AVE STE 103",
+    "postal_code": "070522745"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "7150 GREENVILLE AVE",
+    "postal_code": "752315165"
+   }
+  ],
+  "practiceLocations": [
+   {
+    "address_1": "7150 GREENVILLE AVE",
+    "postal_code": "752317900"
+   }
+  ]
+ },
+ "1184602682": {
+  "number": "1184602682",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "M.D.",
+   "last_updated": "2020-06-01"
+  },
+  "taxonomies": [
+   {
+    "code": "207R00000X",
+    "desc": "Internal Medicine",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "1707 W CHARLESTON BLVD",
+    "postal_code": "891022351"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "3016 W CHARLESTON BLVD STE 100",
+    "postal_code": "891021973"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1437800455": {
+  "number": "1437800455",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "LMFT, LCADC",
+   "last_updated": "2026-04-13"
+  },
+  "taxonomies": [
+   {
+    "code": "106H00000X",
+    "desc": "Marriage & Family Therapist",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "27436 BIG BEND DR",
+    "postal_code": "925858167"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "2701 N TENAYA WAY STE 200",
+    "postal_code": "891280480"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1659876282": {
+  "number": "1659876282",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "MD",
+   "last_updated": "2024-10-30"
+  },
+  "taxonomies": [
+   {
+    "code": "207R00000X",
+    "desc": "Internal Medicine",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "3850 W NEVSO DR UNIT 385",
+    "postal_code": "891034072"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "3850 W NEVSO DR UNIT 385",
+    "postal_code": "891034072"
+   }
+  ],
+  "practiceLocations": [
+   {
+    "address_1": "1800 W CHARLESTON BLVD",
+    "postal_code": "891022386"
+   }
+  ]
+ },
+ "1841991049": {
+  "number": "1841991049",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "FNP-C",
+   "last_updated": "2025-10-29"
+  },
+  "taxonomies": [
+   {
+    "code": "363LF0000X",
+    "desc": "Nurse Practitioner, Family",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "6675 S TENAYA WAY STE 200",
+    "postal_code": "891131932"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "6675 S TENAYA WAY STE 200",
+    "postal_code": "891131932"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1265958821": {
+  "number": "1265958821",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": null,
+   "last_updated": "2021-06-15"
+  },
+  "taxonomies": [
+   {
+    "code": "367500000X",
+    "desc": "Nurse Anesthetist, Certified Registered",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "1400 LOCUST ST",
+    "postal_code": "152195114"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "5508 LAKESIDE DR",
+    "postal_code": "150449253"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1184381998": {
+  "number": "1184381998",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "LISW -S",
+   "last_updated": "2025-07-23"
+  },
+  "taxonomies": [
+   {
+    "code": "1041C0700X",
+    "desc": "Social Worker, Clinical",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "895 CENTRAL AVE",
+    "postal_code": "452021961"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "895 CENTRAL AVE STE 300",
+    "postal_code": "452021984"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1912425075": {
+  "number": "1912425075",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "LPCC-S, PhD",
+   "last_updated": "2025-10-29"
+  },
+  "taxonomies": [
+   {
+    "code": "101YM0800X",
+    "desc": "Counselor, Mental Health",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "796 LILLY LN",
+    "postal_code": "452452510"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "4030 MOUNT CARMEL TOBASCO RD",
+    "postal_code": "452553400"
+   }
+  ],
+  "practiceLocations": [
+   {
+    "address_1": "796 LILLY LN",
+    "postal_code": "452452510"
+   }
+  ]
+ },
+ "1679246078": {
+  "number": "1679246078",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "BCBA",
+   "last_updated": "2025-09-15"
+  },
+  "taxonomies": [
+   {
+    "code": "103K00000X",
+    "desc": "Behavior Analyst",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "7500 SAN FELIPE ST STE 990",
+    "postal_code": "770631708"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "2785 SOM CENTER RD",
+    "postal_code": "440946501"
+   }
+  ],
+  "practiceLocations": [
+   {
+    "address_1": "20575 CENTER RIDGE RD STE 400",
+    "postal_code": "441163422"
+   }
+  ]
+ },
+ "1194464693": {
+  "number": "1194464693",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": null,
+   "last_updated": "2023-03-17"
+  },
+  "taxonomies": [
+   {
+    "code": "363LP0808X",
+    "desc": "Nurse Practitioner, Psych/Mental Health",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "17075 DEVONSHIRE ST",
+    "postal_code": "913251600"
+   },
+   {
+    "address_purpose": "MAILING",
+    "address_1": "17221 ROSCOE BLVD UNIT 4",
+    "postal_code": "913254031"
+   }
+  ],
+  "practiceLocations": [
+   {
+    "address_1": "1225 W 190TH ST STE 280",
+    "postal_code": "902484305"
+   }
+  ]
+ },
+ "1891851861": {
+  "number": "1891851861",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "MD",
+   "last_updated": "2010-07-30"
+  },
+  "taxonomies": [
+   {
+    "code": "207Q00000X",
+    "desc": "Family Medicine",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "231 W VERNON AVE",
+    "postal_code": "900372700"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "231 W VERNON AVE",
+    "postal_code": "900372700"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1326068354": {
+  "number": "1326068354",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "M.D.",
+   "last_updated": "2012-10-19"
+  },
+  "taxonomies": [
+   {
+    "code": "208000000X",
+    "desc": "Pediatrics",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "3111 W BEVERLY BLVD",
+    "postal_code": "906402216"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "3111 W BEVERLY BLVD",
+    "postal_code": "906402216"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1811260474": {
+  "number": "1811260474",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "BCBA",
+   "last_updated": "2012-02-13"
+  },
+  "taxonomies": [
+   {
+    "code": "103K00000X",
+    "desc": "Behavior Analyst",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "6059 BRISTOL PKWY",
+    "postal_code": "902306663"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "6059 BRISTOL PKWY",
+    "postal_code": "902306663"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1154955383": {
+  "number": "1154955383",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "MA, LPC",
+   "last_updated": "2020-02-26"
+  },
+  "taxonomies": [
+   {
+    "code": "101YP2500X",
+    "desc": "Counselor, Professional",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "2939 W WOODLAWN AVE",
+    "postal_code": "782285015"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "2939 W WOODLAWN AVE",
+    "postal_code": "782285015"
+   }
+  ],
+  "practiceLocations": []
+ },
+ "1033662945": {
+  "number": "1033662945",
+  "enumeration_type": "NPI-1",
+  "basic": {
+   "status": "A",
+   "credential": "CRNA",
+   "last_updated": "2019-04-23"
+  },
+  "taxonomies": [
+   {
+    "code": "367500000X",
+    "desc": "Nurse Anesthetist, Certified Registered",
+    "primary": true
+   }
+  ],
+  "addresses": [
+   {
+    "address_purpose": "MAILING",
+    "address_1": "2401 S 31ST ST",
+    "postal_code": "765080001"
+   },
+   {
+    "address_purpose": "LOCATION",
+    "address_1": "2401 S 31ST ST",
+    "postal_code": "76508"
+   }
+  ],
+  "practiceLocations": [
+   {
+    "address_1": "1500 CITYWEST BLVD",
+    "postal_code": "77042"
+   }
+  ]
+ }
+}
