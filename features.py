@@ -349,6 +349,79 @@ def build_features(df, config=None):
             _add_feature(f, 'feat_r3ina_x_claims_corroborate',
                          (r3_ina & f['feat_claims_strong_corroborate']).astype(int), config)
 
+    # ------------------------------------------------------------------
+    # Enrichment families (L–O). Each is guarded on BOTH its family switch
+    # and the presence of its source columns, so build_features stays safe
+    # on plain base files (pipeline.py uploads) that lack the enrichment.
+    # None of these read call-time columns (Calling_*, Sugg_*, Org_Validation,
+    # Comment_Call_QC) — they must stay usable at prediction time.
+    # ------------------------------------------------------------------
+
+    # -------- L: NPPES registry corroboration --------
+    if fams.get('nppes_registry') and 'nppes_found' in df.columns:
+        _add_feature(f, 'feat_nppes_found',
+                     pd.to_numeric(df['nppes_found'], errors='coerce').fillna(0).astype(int), config)
+        _add_feature(f, 'feat_nppes_deactivated',
+                     pd.to_numeric(df.get('nppes_deactivated'), errors='coerce').fillna(0).astype(int), config)
+        # Re-anchored to AS_OF by the staleness script; NaN -> -1 sentinel in prepare_X.
+        _add_feature(f, 'feat_nppes_days_since_update',
+                     pd.to_numeric(df.get('nppes_days_since_update'), errors='coerce'), config)
+        _add_feature(f, 'feat_nppes_practice_ne_mailing',
+                     pd.to_numeric(df.get('nppes_practice_ne_mailing'), errors='coerce').fillna(0).astype(int), config)
+        num_loc = pd.to_numeric(df.get('nppes_num_locations'), errors='coerce').fillna(0)
+        _add_feature(f, 'feat_nppes_num_locations', num_loc, config)
+        _add_feature(f, 'feat_nppes_multi_location', (num_loc > 1).astype(int), config)
+        _add_feature(f, 'feat_nppes_practice_addr_match_tier',
+                     pd.to_numeric(df.get('nppes_practice_addr_match_tier'), errors='coerce').fillna(0), config)
+        _add_feature(f, 'feat_nppes_any_location_match_tier',
+                     pd.to_numeric(df.get('nppes_any_location_match_tier'), errors='coerce').fillna(0), config)
+
+    # -------- M: Hospital-affiliated specialty (rotation-prone segment) --------
+    if fams.get('hospital_specialty') and 'is_hospital_affiliated_specialty' in df.columns:
+        hosp = pd.to_numeric(df['is_hospital_affiliated_specialty'], errors='coerce')
+        _add_feature(f, 'feat_is_hospital_affiliated_specialty', hosp, config)
+        hosp01 = hosp.fillna(0).astype(int)
+        r3_acc = (df['R3'] == 'ACCURATE').astype(int)
+        r3_ina = (df['R3'] == 'INACCURATE').astype(int)
+        # False-removal signature: rotation-prone doctor whose address R3 wants to remove.
+        _add_feature(f, 'feat_hosp_x_r3_inaccurate', (hosp01 & r3_ina).astype(int), config)
+        # Stale-keep risk: rotation-prone doctor whose address R3 kept.
+        _add_feature(f, 'feat_hosp_x_r3_accurate', (hosp01 & r3_acc).astype(int), config)
+        if 'feat_neither_view_found' in f.columns:
+            _add_feature(f, 'feat_hosp_x_web_silent',
+                         (hosp01 & f['feat_neither_view_found']).astype(int), config)
+        pio_present = df['Provider_in_Organization'].notna().astype(int)
+        _add_feature(f, 'feat_hosp_x_org_linked', (hosp01 & pio_present).astype(int), config)
+
+    # -------- N: Address staleness (R3=ACCURATE-gated; AS_OF = 2026-04-30) --------
+    if fams.get('staleness') and 'stale_is_checked' in df.columns:
+        _add_feature(f, 'feat_stale_is_checked',
+                     pd.to_numeric(df['stale_is_checked'], errors='coerce').fillna(0).astype(int), config)
+        for c in ['stale_days_since_claim', 'stale_days_since_nppes', 'stale_min_days',
+                  'stale_over_90', 'stale_moved_elsewhere']:
+            _add_feature(f, f'feat_{c}', pd.to_numeric(df.get(c), errors='coerce'), config)
+        flag = df.get('staleness_flag', pd.Series('not_applicable', index=df.index)).astype(str)
+        for lvl in ['fresh', 'stale_suspect', 'confirmed_stale', 'unknown']:
+            _add_feature(f, f'feat_stale_flag_{lvl}', (flag == lvl).astype(int), config)
+
+    # -------- O: CMS Doctors & Clinicians multi-site --------
+    if fams.get('cms_dc') and 'cms_dc_found' in df.columns:
+        _add_feature(f, 'feat_cms_dc_found',
+                     pd.to_numeric(df['cms_dc_found'], errors='coerce').fillna(0).astype(int), config)
+        for c in ['cms_num_practice_locations', 'cms_num_states', 'cms_num_org_affiliations',
+                  'cms_max_group_size', 'cms_telehealth', 'cms_is_multisite',
+                  'cms_any_location_match_tier', 'cms_matches_any_location',
+                  'cms_multisite_no_match']:
+            _add_feature(f, f'feat_{c}', pd.to_numeric(df.get(c), errors='coerce').fillna(0), config)
+        r3_ina = (df['R3'] == 'INACCURATE').astype(int)
+        match_any = pd.to_numeric(df.get('cms_matches_any_location'), errors='coerce').fillna(0).astype(int)
+        # KEEP guard: CMS says the roster address IS one of the doctor's real sites, yet R3 removed it.
+        _add_feature(f, 'feat_cms_match_x_r3ina', (match_any & r3_ina).astype(int), config)
+        if 'is_hospital_affiliated_specialty' in df.columns:
+            hosp01 = pd.to_numeric(df['is_hospital_affiliated_specialty'], errors='coerce').fillna(0).astype(int)
+            multis = pd.to_numeric(df.get('cms_is_multisite'), errors='coerce').fillna(0).astype(int)
+            _add_feature(f, 'feat_hosp_x_cms_multisite', (hosp01 & multis).astype(int), config)
+
     return f
 
 

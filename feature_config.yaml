@@ -21,9 +21,13 @@ families:
   org_linkage:          true         # H. org name, hospital flag
   claims_raw:           true         # I. direct from claims aggregation
   claims_derived:       true         # J. log-volume, rules
-  cross_interactions:   true     
+  cross_interactions:   true
   raw_base_features:    true
   engineered_base:      true   # K. taxonomy×no-claims, R3×claims rules
+  nppes_registry:       true   # L. NPPES registry corroboration (enriched file)
+  hospital_specialty:   true   # M. hospital-affiliated specialty + interactions
+  staleness:            true   # N. stale_* features (R3=ACCURATE-gated, AS_OF=2026-04-30)
+  cms_dc:               true   # O. CMS Doctors & Clinicians multi-site (needs cms_* cols)
 
 # ============================================================================
 # FEATURE-LEVEL OVERRIDES (drop individual features within a family)

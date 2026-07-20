@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/kushal.gupta/Desktop/Final_R3_Model/data/processed/ 2>/dev/null *)",
+      "Read(//Users/kushal.gupta/Downloads/**)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import requests; print\\('requests OK'\\)\")",
+      "Skill(artifact-design)",
+      "Skill(artifact-design:*)"
+    ]
+  }
+}

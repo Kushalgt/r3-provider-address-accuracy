@@ -388,16 +388,26 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
         oof_out: path for out-of-fold predictions CSV
     """
     print(f"Loading base data from {base_xlsx_path}...")
-    base = pd.read_excel(base_xlsx_path, sheet_name='Base Data', header=1)
+    if str(base_xlsx_path).lower().endswith('.csv'):
+        # Enriched CSV (e.g. data/processed/Base_enriched_staleness.csv) — claims,
+        # NPPES, staleness and cms_* columns may already be merged in.
+        base = pd.read_csv(base_xlsx_path, low_memory=False)
+    else:
+        base = pd.read_excel(base_xlsx_path, sheet_name='Base Data', header=1)
     base = base.rename(columns={'Manual_ Address': 'Manual_Address'})
     base['R3'] = base['Final_R3_Reco_Address'].apply(normalize_r3_label)
     base['CallQC'] = base['Calling_Address'].fillna('UNKNOWN').str.upper()
-    
-    print(f"Loading claims aggregates from {claims_csv_path}...")
-    claims = pd.read_csv(claims_csv_path)
-    
-    df = merge_claims(base, claims)
-    claims.to_csv("claims_data.csv", index=False)
+
+    if claims_csv_path and str(claims_csv_path).lower() not in ('empty', 'none'):
+        print(f"Loading claims aggregates from {claims_csv_path}...")
+        claims = pd.read_csv(claims_csv_path)
+        df = merge_claims(base, claims)
+        claims.to_csv("claims_data.csv", index=False)
+    else:
+        # 'empty' — claims aggregates are already merged into the base file
+        # (or absent). merge_claims(base, None) just normalizes/fills the columns.
+        print("No separate claims file — using claims columns already in base (if any).")
+        df = merge_claims(base, None)
     config = load_config()
     both_conclusive = (df['R3'].isin(['ACCURATE', 'INACCURATE']) &
                        df['CallQC'].isin(['ACCURATE', 'INACCURATE']))
@@ -521,6 +531,9 @@ def main(base_xlsx_path, claims_csv_path, models_out='models.pkl',
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Usage: python train.py <base_data.xlsx> <claims_aggregates.csv>")
+        print("Usage: python train.py <base_data.xlsx|enriched.csv> <claims.csv|empty> "
+              "[models_out.pkl] [oof_out.csv]")
         sys.exit(1)
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2],
+         models_out=sys.argv[3] if len(sys.argv) > 3 else 'models.pkl',
+         oof_out=sys.argv[4] if len(sys.argv) > 4 else 'oof_predictions.csv')
