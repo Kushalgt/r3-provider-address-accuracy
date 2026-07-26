@@ -1,0 +1,5 @@
+https://data.cms.gov/provider-data/dataset/mj5m-pzi6  -> CMS data
+
+
+https://claude.ai/code/artifact/630f353c-d936-4780-9cb1-3bbcd3d52265?via=auto_preview -> R3 artificact 
+file:///Users/kushal.gupta/Desktop/Final_R3_Model/outputs/R3_data_dashboard.html -> dashboard
